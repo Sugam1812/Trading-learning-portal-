@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#0b0f1a" />
+<title>EUR/USD Prop Trader Training Portal</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="logo">◆</span>
+    <span class="title">PROP TRADER GYM</span>
+    <span class="pair">EUR/USD</span>
+  </div>
+  <div class="status">
+    <span id="levelBadge" class="badge">Lv 1</span>
+    <span id="xpBadge" class="badge">0 XP</span>
+    <span id="balanceBadge" class="badge money">$100,000</span>
+    <span id="apiBadge" class="badge dim" title="API calls used today">API 0/800</span>
+    <span id="disciplineBadge" class="badge ok">OK</span>
+  </div>
+</header>
+
+<nav id="sidebar">
+  <a data-route="dashboard" class="active">Dashboard</a>
+  <a data-route="curriculum">Curriculum</a>
+  <a data-route="simulator">Simulator</a>
+  <a data-route="challenges">Challenges</a>
+  <a data-route="quiz">Quizzes</a>
+  <a data-route="strategy">Strategy Lab</a>
+  <a data-route="journal">Journal</a>
+  <a data-route="routine">Daily Routine</a>
+  <a data-route="analytics">Analytics</a>
+  <a data-route="mentor">AI Mentor</a>
+  <a data-route="achievements">Achievements</a>
+  <a data-route="settings">Settings</a>
+</nav>
+
+<main id="view"></main>
+
+<div id="toasts"></div>
+
+<!-- Templates -->
+<template id="tpl-dashboard">
+  <section class="pad">
+    <h1>Welcome back, Trader.</h1>
+    <p class="dim">Your goal: pass a $100k prop-firm challenge with 8% profit, no 5% daily loss breach, no 10% total drawdown breach.</p>
+    <div class="grid-4">
+      <div class="card"><div class="k">Win rate</div><div class="v" id="dWin">—</div></div>
+      <div class="card"><div class="k">Avg R:R</div><div class="v" id="dRR">—</div></div>
+      <div class="card"><div class="k">Max DD</div><div class="v" id="dDD">—</div></div>
+      <div class="card"><div class="k">Trades</div><div class="v" id="dTrades">—</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Next lesson (adaptive)</h3>
+        <div id="dLesson" class="dim">Loading…</div>
+        <button data-go="curriculum" class="btn">Open</button>
+      </div>
+      <div class="card">
+        <h3>Next challenge</h3>
+        <div id="dChallenge" class="dim">Loading…</div>
+        <button data-go="challenges" class="btn">Start</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Today's routine</h3>
+      <div id="dRoutine"></div>
+      <button data-go="routine" class="btn ghost">Open routine</button>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-curriculum">
+  <section class="pad">
+    <h1>Curriculum</h1>
+    <p class="dim">Progress unlocks as you pass checkpoints.</p>
+    <div id="curriculumList"></div>
+    <div id="lessonView" class="card hidden"></div>
+  </section>
+</template>
+
+<template id="tpl-simulator">
+  <section class="pad">
+    <h1>Trading Simulator</h1>
+    <div class="sim-toolbar">
+      <select id="simDataSource">
+        <option value="sample">Sample EUR/USD (offline)</option>
+        <option value="cached">Cached historical</option>
+        <option value="live">Live (uses API)</option>
+      </select>
+      <select id="simTF">
+        <option value="1h">1h</option>
+        <option value="15min">15m</option>
+        <option value="5min">5m</option>
+        <option value="1day">1D</option>
+      </select>
+      <button id="simLoad" class="btn">Load</button>
+      <button id="simPlay" class="btn ghost">▶ Play</button>
+      <button id="simPause" class="btn ghost">⏸</button>
+      <button id="simStep" class="btn ghost">⏭ Step</button>
+      <input id="simSpeed" type="range" min="1" max="20" value="4" title="Speed" />
+    </div>
+    <div class="sim-wrap">
+      <canvas id="chart" width="900" height="420"></canvas>
+      <aside class="order-panel">
+        <h3>Place order</h3>
+        <label>Risk %<input id="simRisk" type="number" value="1" step="0.1" min="0.1" max="5" /></label>
+        <label>Stop (pips)<input id="simSL" type="number" value="20" /></label>
+        <label>Take (pips)<input id="simTP" type="number" value="40" /></label>
+        <div class="rr dim">R:R = <span id="simRR">2.00</span></div>
+        <button id="simBuy" class="btn buy">BUY</button>
+        <button id="simSell" class="btn sell">SELL</button>
+        <button id="simClose" class="btn ghost">Close position</button>
+        <div class="pos" id="simPos">No open position</div>
+        <hr/>
+        <div class="stats">
+          <div>Equity: <span id="simEquity">$100,000</span></div>
+          <div>Day P/L: <span id="simDayPL">$0</span></div>
+          <div>Trades today: <span id="simTradesToday">0</span></div>
+          <div id="simLock" class="warn hidden"></div>
+        </div>
+      </aside>
+    </div>
+    <div id="simLog" class="log"></div>
+  </section>
+</template>
+
+<template id="tpl-challenges">
+  <section class="pad">
+    <h1>Market Challenges</h1>
+    <p class="dim">Scenarios force you to decide under pressure. No re-takes until 24h cooldown.</p>
+    <div id="challengeList"></div>
+    <div id="challengeRun" class="hidden"></div>
+  </section>
+</template>
+
+<template id="tpl-quiz">
+  <section class="pad">
+    <h1>Quizzes</h1>
+    <div id="quizList"></div>
+    <div id="quizRun" class="hidden"></div>
+  </section>
+</template>
+
+<template id="tpl-strategy">
+  <section class="pad">
+    <h1>Strategy Lab</h1>
+    <p class="dim">Define rules → backtest on cached EUR/USD history. No API cost.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Entry rules</h3>
+        <label>Direction
+          <select id="stDir"><option>long</option><option>short</option><option value="both">both</option></select>
+        </label>
+        <label>Trigger
+          <select id="stTrig">
+            <option value="ema_cross">EMA fast/slow cross</option>
+            <option value="breakout">N-bar breakout</option>
+            <option value="pullback_ema">Pullback to EMA</option>
+            <option value="engulfing">Engulfing candle</option>
+          </select>
+        </label>
+        <label>Fast EMA<input id="stEmaF" type="number" value="20"/></label>
+        <label>Slow EMA<input id="stEmaS" type="number" value="50"/></label>
+        <label>Breakout lookback<input id="stLb" type="number" value="20"/></label>
+      </div>
+      <div class="card">
+        <h3>Exit & risk</h3>
+        <label>Stop (ATR x)<input id="stSL" type="number" value="1.5" step="0.1"/></label>
+        <label>Take (ATR x)<input id="stTP" type="number" value="3" step="0.1"/></label>
+        <label>Risk %<input id="stRisk" type="number" value="1" step="0.1"/></label>
+        <label>Timeframe
+          <select id="stTF"><option>1h</option><option>15min</option><option>1day</option></select>
+        </label>
+        <button id="stRun" class="btn">Run backtest</button>
+        <button id="stSave" class="btn ghost">Save strategy</button>
+      </div>
+    </div>
+    <div id="stResult" class="card hidden"></div>
+    <div id="stSaved"></div>
+  </section>
+</template>
+
+<template id="tpl-journal">
+  <section class="pad">
+    <h1>Smart Journal</h1>
+    <div class="card">
+      <h3>New entry</h3>
+      <label>Reasoning<textarea id="jReason" placeholder="Why are you in/out?"></textarea></label>
+      <label>Emotion
+        <select id="jEmo">
+          <option>calm</option><option>fearful</option><option>greedy</option>
+          <option>revenge</option><option>bored</option><option>confident</option>
+        </select>
+      </label>
+      <label>Session
+        <select id="jSess"><option>asia</option><option>london</option><option>ny</option></select>
+      </label>
+      <button id="jSave" class="btn">Save entry</button>
+    </div>
+    <div class="card">
+      <h3>AI insights</h3>
+      <div id="jInsights" class="dim">No data yet.</div>
+    </div>
+    <div id="jList"></div>
+  </section>
+</template>
+
+<template id="tpl-routine">
+  <section class="pad">
+    <h1>Daily Routine</h1>
+    <p class="dim">Complete all 3 phases. XP only awarded on full completion.</p>
+    <div id="routineList"></div>
+  </section>
+</template>
+
+<template id="tpl-analytics">
+  <section class="pad">
+    <h1>Performance Analytics</h1>
+    <div class="grid-4">
+      <div class="card"><div class="k">Win rate</div><div class="v" id="aWin">—</div></div>
+      <div class="card"><div class="k">Avg R:R</div><div class="v" id="aRR">—</div></div>
+      <div class="card"><div class="k">Expectancy</div><div class="v" id="aExp">—</div></div>
+      <div class="card"><div class="k">Max DD</div><div class="v" id="aDD">—</div></div>
+    </div>
+    <div class="card">
+      <h3>Behaviour detection</h3>
+      <div id="aBehave"></div>
+    </div>
+    <div class="card">
+      <h3>Equity curve</h3>
+      <canvas id="equityChart" width="900" height="260"></canvas>
+    </div>
+    <div class="card">
+      <h3>Trade history</h3>
+      <div id="aTrades"></div>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-mentor">
+  <section class="pad">
+    <h1>AI Mentor</h1>
+    <div id="chat" class="chat"></div>
+    <div class="chat-input">
+      <input id="chatMsg" placeholder="Ask anything: 'Review my last trade', 'What is R:R?'…" />
+      <button id="chatSend" class="btn">Send</button>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-achievements">
+  <section class="pad">
+    <h1>Achievements</h1>
+    <div class="progress"><div id="progBar"></div></div>
+    <div id="badges" class="grid-4"></div>
+  </section>
+</template>
+
+<template id="tpl-settings">
+  <section class="pad">
+    <h1>Settings</h1>
+    <div class="card">
+      <h3>Twelve Data API key</h3>
+      <p class="dim">Stored only in this browser's localStorage.</p>
+      <input id="setKey" type="password" placeholder="Paste API key"/>
+      <button id="setKeySave" class="btn">Save</button>
+      <button id="setKeyClear" class="btn ghost">Clear</button>
+    </div>
+    <div class="card">
+      <h3>Prop-firm rules</h3>
+      <label>Starting balance $<input id="setBal" type="number" value="100000"/></label>
+      <label>Max daily loss %<input id="setDL" type="number" value="5" step="0.1"/></label>
+      <label>Max total drawdown %<input id="setTD" type="number" value="10" step="0.1"/></label>
+      <label>Max trades/day<input id="setMT" type="number" value="5"/></label>
+      <label>Cooldown after N losses<input id="setCD" type="number" value="3"/></label>
+      <button id="setRulesSave" class="btn">Save rules</button>
+    </div>
+    <div class="card">
+      <h3>Data</h3>
+      <button id="setExport" class="btn ghost">Export progress (JSON)</button>
+      <button id="setImport" class="btn ghost">Import</button>
+      <input id="setImportFile" type="file" class="hidden"/>
+      <button id="setReset" class="btn danger">Reset everything</button>
+    </div>
+  </section>
+</template>
+
+<!-- Scripts: loaded in dependency order -->
+<script src="js/config.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/api.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/gamification.js"></script>
+<script src="js/discipline.js"></script>
+<script src="js/curriculum.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/simulator.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/adaptive.js"></script>
+<script src="js/strategy.js"></script>
+<script src="js/journal.js"></script>
+<script src="js/routine.js"></script>
+<script src="js/mentor.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
