@@ -164,8 +164,8 @@ class TradingEngine:
         Every 30s: analyze markets → generate signals → validate → execute.
         """
         # Wait for initial candles to accumulate
-        await asyncio.sleep(15)
-        await self._log_agent("TechnicalAgent", "Waiting for market data to accumulate...", "info")
+        await asyncio.sleep(5)
+        await self._log_agent("TechnicalAgent", "Initializing market analysis...", "info")
 
         while self.running:
             try:
@@ -196,9 +196,9 @@ class TradingEngine:
     async def _analyze_symbol(self, symbol: str):
         """Full agent pipeline for one symbol."""
         candle_count = market_feed.candle_store.count(symbol, "1m")
-        if candle_count < 35:
+        if candle_count < 5:
             await self._log_agent("TechnicalAgent",
-                f"{symbol}: Accumulating data... {candle_count}/35 candles", "info", symbol)
+                f"{symbol}: Accumulating data... {candle_count}/5 candles", "info", symbol)
             return
 
         price = market_feed.get_price(symbol)
