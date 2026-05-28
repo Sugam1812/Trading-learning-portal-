@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Loader2, MessageCircle } from 'lucide-react'
+import { Send, Brain, User, Loader2 } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -22,7 +22,7 @@ export default function MentorChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: `Welcome, Trader. I'm your dedicated EUR/USD mentor with 15+ years of prop firm trading experience.\n\nI'm here to help you:\n- **Analyze your trades** and find mistakes\n- **Build solid risk management** habits\n- **Pass prop firm challenges** like FTMO\n- **Answer any trading question** you have\n\nWhat would you like to work on today?`,
+      content: `NEURAL MENTOR ONLINE\n\nWelcome, Trader. I'm your dedicated EUR/USD mentor with 15+ years of prop firm trading experience.\n\nI'm here to help you:\n- **Analyze your trades** and find mistakes\n- **Build solid risk management** habits\n- **Pass prop firm challenges** like FTMO\n- **Answer any trading question** you have\n\nWhat would you like to work on today?`,
       timestamp: new Date(),
     },
   ])
@@ -47,20 +47,14 @@ export default function MentorChat() {
 
     try {
       const res = await axios.post('/api/mentor/chat', { message, history })
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: res.data.content, timestamp: new Date() },
-      ])
+      setMessages((prev) => [...prev, { role: 'assistant', content: res.data.content, timestamp: new Date() }])
     } catch {
       toast.error('Mentor unavailable. Check your API key.')
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'I\'m temporarily unavailable. Add your ANTHROPIC_API_KEY in the server .env file for full AI responses.',
-          timestamp: new Date(),
-        },
-      ])
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: 'SYSTEM OFFLINE — Add your ANTHROPIC_API_KEY in the server .env file for full AI responses.',
+        timestamp: new Date(),
+      }])
     } finally {
       setLoading(false)
       inputRef.current?.focus()
@@ -69,17 +63,11 @@ export default function MentorChat() {
 
   const formatContent = (content: string) => {
     return content.split('\n').map((line, i) => {
-      if (line.startsWith('**') && line.endsWith('**')) {
-        return <p key={i} className="font-bold text-slate-100 mt-2 first:mt-0">{line.slice(2, -2)}</p>
-      }
-      if (line.startsWith('- ')) {
-        return <li key={i} className="ml-3 list-disc text-slate-300">{formatInline(line.slice(2))}</li>
-      }
-      if (line.startsWith('# ')) {
-        return <h3 key={i} className="font-bold text-slate-100 text-base mt-2">{line.slice(2)}</h3>
-      }
+      if (line.startsWith('**') && line.endsWith('**')) return <p key={i} className="font-bold text-slate-100 mt-2 first:mt-0">{line.slice(2, -2)}</p>
+      if (line.startsWith('- ')) return <li key={i} className="ml-3 list-disc text-slate-400 text-xs">{formatInline(line.slice(2))}</li>
+      if (line.startsWith('# ')) return <div key={i} className="font-bold text-cyber-cyan text-xs tracking-widest font-hud mt-2">{line.slice(2).toUpperCase()}</div>
       if (line.trim() === '') return <br key={i} />
-      return <p key={i} className="text-slate-300">{formatInline(line)}</p>
+      return <p key={i} className="text-slate-300 text-xs leading-relaxed">{formatInline(line)}</p>
     })
   }
 
@@ -95,23 +83,27 @@ export default function MentorChat() {
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 p-1">
+      <div className="flex-1 overflow-y-auto space-y-3 p-1">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex gap-3 animate-fade-in ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
-              msg.role === 'assistant' ? 'bg-accent-blue/20 border border-accent-blue/30' : 'bg-bg-elevated border border-border'
+          <div key={i} className={`flex gap-2.5 animate-fade-in ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            <div className={`w-7 h-7 rounded flex-shrink-0 flex items-center justify-center ${
+              msg.role === 'assistant'
+                ? 'bg-cyber-cyan/10 border border-cyber-cyan/20'
+                : 'bg-bg-elevated border border-border'
             }`}>
-              {msg.role === 'assistant' ? <Bot size={14} className="text-accent-blue" /> : <User size={14} className="text-slate-400" />}
+              {msg.role === 'assistant'
+                ? <Brain size={13} className="text-cyber-cyan" style={{ filter: 'drop-shadow(0 0 4px #00e5ff)' }} />
+                : <User size={13} className="text-slate-400" />}
             </div>
-            <div className={`max-w-[85%] rounded-xl p-3.5 text-sm leading-relaxed ${
+            <div className={`max-w-[88%] rounded-lg p-3 ${
               msg.role === 'assistant'
                 ? 'bg-bg-elevated border border-border-dim'
-                : 'bg-accent-blue/15 border border-accent-blue/30'
+                : 'bg-cyber-cyan/10 border border-cyber-cyan/20'
             }`}>
               <div className="space-y-0.5 list-none">
                 {formatContent(msg.content)}
               </div>
-              <div className="text-[10px] text-slate-600 mt-2">
+              <div className="text-[8px] text-slate-700 mt-2 font-mono">
                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
@@ -119,12 +111,15 @@ export default function MentorChat() {
         ))}
 
         {loading && (
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-accent-blue/20 border border-accent-blue/30">
-              <Bot size={14} className="text-accent-blue" />
+          <div className="flex gap-2.5">
+            <div className="w-7 h-7 rounded flex-shrink-0 flex items-center justify-center bg-cyber-cyan/10 border border-cyber-cyan/20">
+              <Brain size={13} className="text-cyber-cyan" />
             </div>
-            <div className="bg-bg-elevated border border-border-dim rounded-xl p-3.5">
-              <Loader2 size={14} className="animate-spin text-accent-blue" />
+            <div className="bg-bg-elevated border border-border-dim rounded-lg p-3">
+              <div className="flex items-center gap-1.5">
+                <Loader2 size={12} className="animate-spin text-cyber-cyan" />
+                <span className="text-[9px] text-slate-600 font-mono animate-pulse">PROCESSING...</span>
+              </div>
             </div>
           </div>
         )}
@@ -135,13 +130,13 @@ export default function MentorChat() {
       {/* Quick questions */}
       {messages.length <= 1 && (
         <div className="py-3 border-t border-border-dim">
-          <p className="text-[10px] text-slate-500 mb-2">Quick questions:</p>
-          <div className="flex flex-wrap gap-1.5">
+          <p className="hud-label mb-2">QUICK QUERIES</p>
+          <div className="flex flex-wrap gap-1">
             {QUICK_QUESTIONS.map((q) => (
               <button
                 key={q}
                 onClick={() => send(q)}
-                className="text-[10px] bg-bg-elevated hover:bg-border-dim border border-border-dim text-slate-400 hover:text-slate-200 px-2.5 py-1.5 rounded-full transition-colors"
+                className="text-[9px] font-hud tracking-wider bg-bg-elevated hover:bg-border-dim border border-border-dim text-slate-500 hover:text-cyber-cyan px-2 py-1 rounded transition-colors"
               >
                 {q}
               </button>
@@ -155,8 +150,8 @@ export default function MentorChat() {
         <div className="flex gap-2">
           <input
             ref={inputRef}
-            className="input-field flex-1"
-            placeholder="Ask your mentor anything..."
+            className="input-field flex-1 text-xs"
+            placeholder="ASK YOUR MENTOR ANYTHING..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
@@ -165,9 +160,9 @@ export default function MentorChat() {
           <button
             onClick={() => send()}
             disabled={!input.trim() || loading}
-            className="btn-primary px-3 disabled:opacity-50"
+            className="btn-primary px-3 disabled:opacity-40"
           >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>
         </div>
       </div>

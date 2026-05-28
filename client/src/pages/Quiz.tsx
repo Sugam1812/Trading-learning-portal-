@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Brain, CheckCircle, Lock, Trophy, ChevronRight } from 'lucide-react'
+import { Brain, CheckCircle, Lock, Trophy, ChevronRight, Zap } from 'lucide-react'
 import { quizzes } from '../data/quizzes'
 import { curriculum } from '../data/curriculum'
 import { useProgressStore } from '../store/useProgressStore'
@@ -27,8 +27,8 @@ export default function Quiz() {
 
   if (activeQuiz) {
     return (
-      <div className="max-w-xl mx-auto">
-        <div className="card">
+      <div className="max-w-xl mx-auto animate-fade-in">
+        <div className="card-cyber">
           <QuizEngine
             quiz={activeQuiz}
             onComplete={(score, total, passed) => handleComplete(activeQuiz.id, score, total, passed)}
@@ -40,16 +40,15 @@ export default function Quiz() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-          <Brain size={20} className="text-xp" />
-          Knowledge Quizzes
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">Test your understanding. Pass with 70% to earn XP and badges.</p>
+    <div className="max-w-2xl mx-auto space-y-4 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Brain size={14} className="text-xp" style={{ filter: 'drop-shadow(0 0 6px #8b5cf6)' }} />
+        <h1 className="text-sm font-bold tracking-widest text-slate-200 font-hud">KNOWLEDGE OPS — QUIZ MODULES</h1>
       </div>
+      <p className="text-[10px] text-slate-600 font-mono -mt-2">Pass with 70% to earn XP and unlock achievement badges.</p>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {quizzes.map((quiz) => {
           const mod = curriculum.find((m) => m.id === quiz.moduleId)
           const unlocked = isModuleUnlocked(quiz.moduleId)
@@ -58,36 +57,37 @@ export default function Quiz() {
           return (
             <div
               key={quiz.id}
-              className={`card flex items-center gap-4 transition-all ${
-                unlocked ? 'hover:border-border cursor-pointer' : 'opacity-60 cursor-not-allowed'
+              className={`card-cyber flex items-center gap-4 transition-all ${
+                unlocked ? 'cursor-pointer hover:border-cyber-cyan/30' : 'opacity-50 cursor-not-allowed'
               }`}
+              style={unlocked ? {} : {}}
               onClick={() => unlocked && setActiveQuiz(quiz)}
             >
-              <div className="text-3xl flex-shrink-0">{mod?.icon || '📝'}</div>
+              <span className="text-2xl flex-shrink-0">{mod?.icon || '📝'}</span>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-slate-200">{quiz.title}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{quiz.questions.length} questions • 70% to pass</div>
-                <div className="text-[10px] text-slate-600 mt-1">Module: {mod?.title}</div>
+                <div className="text-[10px] font-bold tracking-wider text-slate-300 font-hud">{quiz.title.toUpperCase()}</div>
+                <div className="text-[9px] text-slate-600 font-mono mt-0.5">{quiz.questions.length} QUESTIONS · 70% TO PASS</div>
+                <div className="text-[9px] text-slate-700 font-hud tracking-wider mt-0.5">MODULE: {mod?.title.toUpperCase()}</div>
               </div>
 
               <div className="flex items-center gap-3 flex-shrink-0">
-                {result ? (
+                {result && (
                   <div className="text-right">
-                    <div className={`text-sm font-bold ${result.passed ? 'text-bull' : 'text-bear'}`}>
+                    <div className={`text-sm font-bold font-mono tabular-nums ${result.passed ? 'text-bull' : 'text-bear'}`}
+                         style={{ textShadow: result.passed ? '0 0 8px rgba(0,255,136,0.3)' : '0 0 8px rgba(255,51,85,0.3)' }}>
                       {Math.round((result.score / result.total) * 100)}%
                     </div>
-                    <div className={`text-[10px] ${result.passed ? 'text-bull' : 'text-bear'}`}>
-                      {result.passed ? 'Passed' : 'Failed'}
+                    <div className={`text-[9px] font-hud tracking-wider ${result.passed ? 'text-bull' : 'text-bear'}`}>
+                      {result.passed ? 'PASSED' : 'FAILED'}
                     </div>
                   </div>
-                ) : null}
-
+                )}
                 {!unlocked ? (
-                  <Lock size={16} className="text-slate-600" />
+                  <Lock size={14} className="text-slate-600" />
                 ) : result?.passed ? (
-                  <CheckCircle size={18} className="text-bull" />
+                  <CheckCircle size={16} className="text-bull" style={{ filter: 'drop-shadow(0 0 4px #00ff88)' }} />
                 ) : (
-                  <ChevronRight size={18} className="text-slate-500" />
+                  <ChevronRight size={14} className="text-slate-500" />
                 )}
               </div>
             </div>
@@ -95,15 +95,21 @@ export default function Quiz() {
         })}
       </div>
 
-      <div className="card bg-gold/5 border-gold/20">
+      {/* Info panel */}
+      <div className="card-cyber border-xp/20" style={{ boxShadow: '0 0 12px rgba(139,92,246,0.05)' }}>
         <div className="flex items-start gap-3">
-          <Trophy size={16} className="text-gold mt-0.5 flex-shrink-0" />
+          <Trophy size={14} className="text-gold mt-0.5 flex-shrink-0" style={{ filter: 'drop-shadow(0 0 4px #ffd700)' }} />
           <div>
-            <div className="text-sm font-semibold text-slate-200 mb-1">How to Unlock Quizzes</div>
-            <p className="text-xs text-slate-400">
-              Complete at least half the lessons in a module to unlock its quiz. Each passed quiz earns 50+ XP and contributes toward badges.
+            <div className="hud-label mb-1">HOW TO UNLOCK QUIZZES</div>
+            <p className="text-[10px] text-slate-500 font-mono leading-relaxed">
+              Complete at least half the lessons in a module to unlock its quiz. Passing earns{' '}
+              <span className="text-xp">50+ XP</span> and contributes toward achievement badges.
             </p>
           </div>
+        </div>
+        <div className="mt-3 pt-3 border-t border-border-dim flex items-center gap-1.5">
+          <Zap size={10} className="text-xp" />
+          <span className="text-[9px] text-slate-600 font-hud tracking-wider">XP REWARDS: BASE 50 XP + 5 XP PER CORRECT ANSWER</span>
         </div>
       </div>
     </div>

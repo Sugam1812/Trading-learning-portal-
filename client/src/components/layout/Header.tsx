@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Wifi, WifiOff, TrendingUp, TrendingDown, Clock } from 'lucide-react'
+import { Wifi, WifiOff, TrendingUp, TrendingDown, Activity, Signal } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { formatPrice, getCurrentSession } from '../../utils/calculations'
 import axios from 'axios'
@@ -24,7 +24,6 @@ export default function Header() {
         setConnected(false)
       }
     }
-
     fetchPrice()
     const interval = setInterval(fetchPrice, 30000)
     return () => clearInterval(interval)
@@ -38,52 +37,71 @@ export default function Header() {
   const session = getCurrentSession()
 
   return (
-    <header className="sticky top-0 z-20 bg-bg-secondary/95 backdrop-blur-sm border-b border-border-dim h-14 flex items-center px-4 gap-4">
-      {/* EUR/USD Price */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 bg-bg-elevated px-3 py-1.5 rounded-lg border border-border-dim">
-          <span className="text-xs text-slate-500 font-mono">EUR/USD</span>
-          {price ? (
-            <>
-              <span className="font-mono text-sm font-bold text-slate-100">{formatPrice(price)}</span>
-              {priceChange !== 0 && (
-                <span className={`flex items-center gap-0.5 text-xs font-mono ${priceChange > 0 ? 'text-bull' : 'text-bear'}`}>
-                  {priceChange > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                  {priceChange > 0 ? '+' : ''}{(priceChange * 10000).toFixed(1)}p
-                </span>
-              )}
-            </>
-          ) : (
-            <span className="text-xs text-slate-500 font-mono">Loading...</span>
-          )}
-        </div>
+    <header
+      className="sticky top-0 z-20 border-b border-border-dim h-12 flex items-center px-4 gap-3"
+      style={{ background: 'rgba(3,16,31,0.95)', backdropFilter: 'blur(12px)' }}
+    >
+      {/* EUR/USD Price display */}
+      <div className="flex items-center gap-2 bg-bg-elevated border border-border-dim rounded px-3 h-7">
+        <span className="text-[9px] tracking-widest text-slate-600 font-hud">EUR/USD</span>
+        {price ? (
+          <>
+            <span
+              className="font-mono text-sm font-bold"
+              style={{ color: priceChange >= 0 ? '#00ff88' : '#ff3355', textShadow: priceChange >= 0 ? '0 0 8px rgba(0,255,136,0.4)' : '0 0 8px rgba(255,51,85,0.4)' }}
+            >
+              {formatPrice(price)}
+            </span>
+            {priceChange !== 0 && (
+              <span className={`flex items-center gap-0.5 text-[10px] font-mono ${priceChange > 0 ? 'text-bull' : 'text-bear'}`}>
+                {priceChange > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                {priceChange > 0 ? '+' : ''}{(priceChange * 10000).toFixed(1)}p
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="text-[10px] text-slate-600 font-mono animate-pulse">LOADING</span>
+        )}
+      </div>
 
-        {/* Session indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400">
-          <div className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
-          {session}
-        </div>
+      {/* Session tag */}
+      <div className="hidden sm:flex items-center gap-1.5">
+        <div className="dot-live animate-pulse-fast" />
+        <span className="text-[9px] tracking-widest text-slate-500 font-hud">{session}</span>
       </div>
 
       <div className="flex-1" />
 
-      {/* Time */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono">
-        <Clock size={12} />
-        {time.toUTCString().split(' ').slice(4, 5).join(' ')} UTC
+      {/* UTC Clock */}
+      <div className="hidden sm:flex items-center gap-1.5 bg-bg-elevated border border-border-dim rounded px-2.5 h-7">
+        <Activity size={10} className="text-cyber-cyan/60" />
+        <span className="text-[10px] font-mono text-slate-400 tabular-nums">
+          {time.toUTCString().slice(17, 25)} UTC
+        </span>
       </div>
 
       {/* Connection status */}
-      <div className={`flex items-center gap-1 text-xs ${connected ? 'text-bull' : 'text-slate-500'}`}>
-        {connected ? <Wifi size={14} /> : <WifiOff size={14} />}
-        <span className="hidden sm:inline">{connected ? 'Live' : 'Sim'}</span>
+      <div className="flex items-center gap-1.5">
+        {connected ? (
+          <>
+            <Signal size={12} className="text-bull" style={{ filter: 'drop-shadow(0 0 4px #00ff88)' }} />
+            <span className="text-[9px] tracking-widest text-bull font-hud hidden sm:inline">LIVE</span>
+          </>
+        ) : (
+          <>
+            <WifiOff size={12} className="text-slate-600" />
+            <span className="text-[9px] tracking-widest text-slate-600 font-hud hidden sm:inline">SIM</span>
+          </>
+        )}
       </div>
 
       {/* Balance */}
       {profile && (
-        <div className="flex items-center gap-2 bg-bg-elevated px-3 py-1.5 rounded-lg border border-border-dim">
-          <span className="text-xs text-slate-500">Balance</span>
-          <span className="font-mono text-sm font-bold text-slate-100">
+        <div className="flex items-center gap-2 bg-bg-elevated border border-cyber-cyan/20 rounded px-3 h-7"
+             style={{ boxShadow: '0 0 8px rgba(0,229,255,0.05)' }}>
+          <span className="text-[9px] tracking-widest text-slate-600 font-hud">BALANCE</span>
+          <span className="font-mono text-sm font-bold text-cyber-cyan tabular-nums"
+                style={{ textShadow: '0 0 8px rgba(0,229,255,0.3)' }}>
             ${profile.account_balance.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>

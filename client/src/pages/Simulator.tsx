@@ -5,6 +5,7 @@ import PropFirmPanel from '../components/simulator/PropFirmPanel'
 import TradeList from '../components/simulator/TradeList'
 import { useTradeStore } from '../store/useTradeStore'
 import { useAppStore } from '../store/useAppStore'
+import { TrendingUp } from 'lucide-react'
 import axios from 'axios'
 
 export default function Simulator() {
@@ -28,9 +29,7 @@ export default function Simulator() {
     } catch {}
   }, [])
 
-  useEffect(() => {
-    loadTrades()
-  }, [])
+  useEffect(() => { loadTrades() }, [])
 
   const handleTradeOpened = () => {
     loadTrades()
@@ -38,32 +37,23 @@ export default function Simulator() {
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex gap-4">
-      {/* Chart — takes most space */}
-      <div className="flex-1 flex flex-col gap-4 min-w-0">
+    <div className="h-[calc(100vh-3rem)] flex gap-3">
+      {/* Chart + trades */}
+      <div className="flex-1 flex flex-col gap-3 min-w-0">
         <div className="flex-1 min-h-0">
-          <TradingChart
-            openTrades={openTrades}
-            onPriceUpdate={setCurrentPrice}
-          />
+          <TradingChart openTrades={openTrades} onPriceUpdate={setCurrentPrice} />
         </div>
-        {/* Open trades at bottom of chart area */}
         <div className="h-52 overflow-y-auto">
-          <TradeList
-            openTrades={openTrades}
-            recentTrades={recentTrades}
-            currentPrice={currentPrice}
-            onRefresh={handleTradeOpened}
-          />
+          <TradeList openTrades={openTrades} recentTrades={recentTrades} currentPrice={currentPrice} onRefresh={handleTradeOpened} />
         </div>
       </div>
 
       {/* Right panel */}
-      <div className="w-72 flex flex-col gap-4 overflow-y-auto flex-shrink-0">
-        <div className="card">
-          <div className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-bull animate-pulse" />
-            New Trade
+      <div className="w-72 flex flex-col gap-3 overflow-y-auto flex-shrink-0">
+        <div className="card-cyber">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="dot-live animate-pulse-fast" />
+            <span className="panel-title">NEW TRADE</span>
           </div>
           <TradeForm currentPrice={currentPrice} onTradeOpened={handleTradeOpened} />
         </div>

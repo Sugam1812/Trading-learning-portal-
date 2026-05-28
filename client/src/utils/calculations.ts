@@ -8,6 +8,12 @@ export function calcSLPips(entryPrice: number, stopLoss: number): number {
   return Math.abs(entryPrice - stopLoss) * 10000
 }
 
+export function calcPips(entryPrice: number, exitPrice: number, direction: 'buy' | 'sell'): number {
+  return direction === 'buy'
+    ? (exitPrice - entryPrice) * 10000
+    : (entryPrice - exitPrice) * 10000
+}
+
 export function calcRR(entryPrice: number, stopLoss: number, takeProfit: number): number {
   const risk = Math.abs(entryPrice - stopLoss)
   const reward = Math.abs(takeProfit - entryPrice)
