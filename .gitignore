@@ -7,3 +7,7 @@ server/.env
 dist/
 client/dist/
 *.log
+__pycache__/
+*.pyc
+*.pyo
+ai_engine/.env
