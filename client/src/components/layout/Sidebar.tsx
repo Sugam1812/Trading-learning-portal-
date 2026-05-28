@@ -2,13 +2,14 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, BookOpen, TrendingUp, BarChart2,
   BookMarked, Brain, MessageCircle, Settings2, Trophy,
-  Calendar, Zap, ChevronLeft, ChevronRight, Cpu
+  Calendar, Zap, ChevronLeft, ChevronRight, Cpu, Activity
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { getLevelInfo } from '../../data/badges'
 
 const NAV = [
   { to: '/',            label: 'COMMAND CENTER', icon: LayoutDashboard, group: 'main' },
+  { to: '/ai-fund',     label: 'AI FUND',         icon: Activity,        group: 'main' },
   { to: '/curriculum',  label: 'NEURAL TRAINING', icon: BookOpen,        group: 'main' },
   { to: '/simulator',   label: 'TRADE SIMULATOR', icon: TrendingUp,      group: 'main' },
   { to: '/analytics',   label: 'ANALYTICS',       icon: BarChart2,       group: 'data' },

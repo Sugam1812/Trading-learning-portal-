@@ -10,12 +10,14 @@ import Mentor from './pages/Mentor'
 import Strategy from './pages/Strategy'
 import Gamification from './pages/Gamification'
 import DailyRoutine from './pages/DailyRoutine'
+import AiFund from './pages/AiFund'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<Dashboard />} />
+        <Route path="ai-fund" element={<AiFund />} />
         <Route path="curriculum" element={<Curriculum />} />
         <Route path="simulator" element={<Simulator />} />
         <Route path="analytics" element={<Analytics />} />
