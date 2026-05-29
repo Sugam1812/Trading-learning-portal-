@@ -62,9 +62,9 @@ async def get_status():
     daily_pnl = await get_daily_pnl()
     return {
         "is_active": bool(state.get("is_active", False)),
-        "balance": float(state.get("current_balance", 100000.0)),
-        "initial_balance": float(state.get("initial_balance", 100000.0)),
-        "peak_balance": float(state.get("peak_balance", 100000.0)),
+        "balance": float(state.get("current_balance", 5000.0)),
+        "initial_balance": float(state.get("initial_balance", 5000.0)),
+        "peak_balance": float(state.get("peak_balance", 5000.0)),
         "daily_pnl": daily_pnl,
         "total_pnl": float(state.get("total_pnl", 0.0)),
         "total_trades": total_trades,
@@ -97,7 +97,7 @@ async def reset_engine():
         await trading_engine.stop()
     pool = await get_pool()
     async with pool.acquire() as conn:
-        await conn.execute("UPDATE runtime_state SET balance=10000, daily_pnl=0, total_trades=0, win_rate=0, is_active=false WHERE id=1")
+        await conn.execute("UPDATE runtime_state SET current_balance=5000, initial_balance=5000, peak_balance=5000, total_pnl=0, total_trades=0, winning_trades=0, is_active=false WHERE id=1")
         await conn.execute("DELETE FROM ai_trades")
         await conn.execute("DELETE FROM agent_logs")
         await conn.execute("DELETE FROM market_signals")
@@ -131,6 +131,23 @@ async def get_memory(limit: int = 50):
             "SELECT * FROM agent_memory ORDER BY importance DESC, created_at DESC LIMIT $1", limit
         )
     return [dict(r) for r in rows]
+
+
+@app.get("/strategies")
+async def get_strategies():
+    return trading_engine.strategy_research.get_status()
+
+
+@app.get("/session")
+async def get_session_info():
+    from engine.market_feed import get_session
+    strat = trading_engine.strategy_research.get_status()
+    return {
+        "session": get_session(),
+        "strategy": strat["active_strategy"],
+        "strategy_id": strat["strategy_id"],
+        "all_strategies": strat["all_strategies"],
+    }
 
 
 @app.get("/performance")

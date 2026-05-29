@@ -7,14 +7,14 @@ CREATE TABLE IF NOT EXISTS runtime_state (
     is_active BOOLEAN DEFAULT FALSE,
     started_at TIMESTAMPTZ,
     stopped_at TIMESTAMPTZ,
-    initial_balance DECIMAL(18,8) DEFAULT 100000.00,
-    current_balance DECIMAL(18,8) DEFAULT 100000.00,
+    initial_balance DECIMAL(18,8) DEFAULT 5000.00,
+    current_balance DECIMAL(18,8) DEFAULT 5000.00,
     total_trades INTEGER DEFAULT 0,
     winning_trades INTEGER DEFAULT 0,
     total_pnl DECIMAL(18,8) DEFAULT 0,
     max_drawdown DECIMAL(10,4) DEFAULT 0,
-    peak_balance DECIMAL(18,8) DEFAULT 100000.00,
-    trading_pairs TEXT[] DEFAULT ARRAY['BTC/USDT','ETH/USDT'],
+    peak_balance DECIMAL(18,8) DEFAULT 5000.00,
+    trading_pairs TEXT[] DEFAULT ARRAY['EUR/USD','GBP/USD'],
     risk_per_trade DECIMAL(5,2) DEFAULT 1.5,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -107,3 +107,17 @@ CREATE TABLE IF NOT EXISTS market_signals (
 );
 
 CREATE INDEX IF NOT EXISTS idx_signals_symbol ON market_signals(symbol, created_at DESC);
+
+-- Strategy performance tracking (self-improvement engine)
+CREATE TABLE IF NOT EXISTS strategy_performance (
+    id SERIAL PRIMARY KEY,
+    strategy_id VARCHAR(50) NOT NULL UNIQUE,
+    strategy_name VARCHAR(100),
+    trades INTEGER DEFAULT 0,
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0,
+    total_pnl DECIMAL(12,4) DEFAULT 0,
+    consecutive_losses INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);

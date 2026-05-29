@@ -11,8 +11,12 @@ from typing import Dict, List, Optional, Callable
 
 log = logging.getLogger("position_manager")
 
-FEE_RATE = 0.001      # 0.1% per trade (Binance taker)
-SLIPPAGE_RATE = 0.0005  # 0.05% slippage simulation
+FEE_RATE = 0.00005      # 0.005% per trade (forex broker spread cost)
+SLIPPAGE_RATE = 0.0001  # 0.01% slippage simulation (forex typical)
+
+MIN_SL_PIPS = 10        # Minimum 10-pip stop loss
+PIP = 0.0001            # 1 pip for 4-decimal forex pairs (EUR/USD, GBP/USD)
+MIN_RR = 2.0            # Minimum 1:2 risk:reward enforced
 
 
 class PositionManager:
@@ -72,18 +76,18 @@ class PositionManager:
             else:
                 pos["lowest_price"] = min(pos["lowest_price"], price)
 
-            # Trailing stop logic (activates after 0.5% move in favor)
+            # Trailing stop (activates after 15-pip / 0.15% move in favor)
             trail_distance = pos.get("trailing_stop_distance")
             if trail_distance:
-                if direction == "long" and pos["highest_price"] > entry * 1.005:
+                if direction == "long" and pos["highest_price"] > entry * 1.0015:
                     new_sl = pos["highest_price"] * (1 - trail_distance)
                     if new_sl > pos["stop_loss"]:
                         pos["stop_loss"] = new_sl
                         sl = new_sl
                         if not pos["trailing_activated"]:
                             pos["trailing_activated"] = True
-                            log.info(f"#{trade_id} trailing stop activated at {sl:.2f}")
-                elif direction == "short" and pos["lowest_price"] < entry * 0.995:
+                            log.info(f"#{trade_id} trailing stop activated at {sl:.5f}")
+                elif direction == "short" and pos["lowest_price"] < entry * 0.9985:
                     new_sl = pos["lowest_price"] * (1 + trail_distance)
                     if new_sl < pos["stop_loss"]:
                         pos["stop_loss"] = new_sl
@@ -147,8 +151,11 @@ class PositionManager:
         fees = pos_val * FEE_RATE  # exit fee
         pnl -= fees
 
-        close_reason = "STOP_LOSS" if (direction == "long" and exit_price <= pos["stop_loss"] + 0.01) or \
-                                       (direction == "short" and exit_price >= pos["stop_loss"] - 0.01) else "TAKE_PROFIT"
+        sl_tolerance = PIP * 2  # 2-pip tolerance for SL/TP classification
+        close_reason = "STOP_LOSS" if (
+            (direction == "long" and exit_price <= pos["stop_loss"] + sl_tolerance) or
+            (direction == "short" and exit_price >= pos["stop_loss"] - sl_tolerance)
+        ) else "TAKE_PROFIT"
         if reason == "emergency":
             close_reason = "EMERGENCY"
 
@@ -166,7 +173,7 @@ class PositionManager:
         del self._positions[trade_id]
 
         emoji = "✅" if pnl > 0 else "❌"
-        log.info(f"{emoji} #{trade_id} {direction.upper()} {pos['symbol']} closed @ {exit_price:.2f} | P&L: ${pnl:.2f} ({pnl_pct*100:.2f}%)")
+        log.info(f"{emoji} #{trade_id} {direction.upper()} {pos['symbol']} closed @ {exit_price:.5f} | P&L: ${pnl:.2f} ({pnl_pct*100:.3f}%)")
 
         for cb in self._close_callbacks:
             try:
@@ -178,26 +185,36 @@ class PositionManager:
 
     def calculate_entry(self, direction: str, price: float,
                         atr_distance: float) -> Dict[str, float]:
-        """Calculate entry, SL, TP with proper R:R based on ATR."""
+        """
+        Calculate forex entry, SL, TP.
+        Enforces: min 10-pip SL, min 1:2 RR, realistic pip precision.
+        """
         slippage = price * SLIPPAGE_RATE
         fee = price * FEE_RATE
 
-        if direction == "long":
-            entry = price + slippage + fee
-            sl = entry - atr_distance * 1.5
-            tp = entry + atr_distance * 2.5  # 1:1.67 R:R minimum
-        else:
-            entry = price - slippage - fee
-            sl = entry + atr_distance * 1.5
-            tp = entry - atr_distance * 2.5
+        # SL distance: use ATR but enforce minimum 10 pips
+        min_sl_distance = MIN_SL_PIPS * PIP
+        sl_distance = max(atr_distance * 1.5, min_sl_distance)
 
-        rr = atr_distance * 2.5 / (atr_distance * 1.5) if atr_distance > 0 else 1.67
-        trail_distance = 0.008  # 0.8% trailing stop distance
+        # TP must be at least 2x the SL distance (1:2 RR minimum)
+        tp_distance = max(sl_distance * MIN_RR, sl_distance * 2.0)
+
+        if direction == "long":
+            entry = round(price + slippage + fee, 5)
+            sl = round(entry - sl_distance, 5)
+            tp = round(entry + tp_distance, 5)
+        else:
+            entry = round(price - slippage - fee, 5)
+            sl = round(entry + sl_distance, 5)
+            tp = round(entry - tp_distance, 5)
+
+        rr = tp_distance / sl_distance if sl_distance > 0 else MIN_RR
+        trail_distance = 0.0015  # 15-pip trailing stop for forex
 
         return {
-            "entry_price": round(entry, 4),
-            "stop_loss": round(sl, 4),
-            "take_profit": round(tp, 4),
+            "entry_price": entry,
+            "stop_loss": sl,
+            "take_profit": tp,
             "risk_reward": round(rr, 2),
             "trailing_stop_distance": trail_distance,
         }

@@ -11,10 +11,13 @@ import time
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Callable
 
-from engine.market_feed import market_feed, SYMBOLS
+from engine.market_feed import market_feed, SYMBOLS, get_session
 from engine.position_manager import PositionManager
 from agents.technical_agent import TechnicalAgent
 from agents.ai_agent import SentimentAgent, RiskAgent, ReflectionAgent
+from agents.macro_agent import MacroAgent
+from agents.liquidity_agent import LiquidityAgent
+from agents.strategy_agent import StrategyResearchAgent
 from db import database as db
 
 log = logging.getLogger("trading_engine")
@@ -39,22 +42,28 @@ class TradingEngine:
         self.sentiment = SentimentAgent()
         self.risk = RiskAgent()
         self.reflection = ReflectionAgent()
+        self.macro = MacroAgent()
+        self.liquidity = LiquidityAgent()
+        self.strategy_research = StrategyResearchAgent()
 
         # Position management
         self.positions = PositionManager()
         self.positions.on_close(self._on_position_closed)
         self.positions.on_update(self._on_position_update)
 
-        # State
-        self._balance = 100000.0
-        self._initial_balance = 100000.0
-        self._peak_balance = 100000.0
+        # State — $5,000 demo forex account
+        self._balance = 5000.0
+        self._initial_balance = 5000.0
+        self._peak_balance = 5000.0
         self._agent_status = {
             "TechnicalAgent": "idle",
             "SentimentAgent": "idle",
+            "MacroAgent": "idle",
+            "LiquidityAgent": "idle",
             "RiskAgent": "idle",
             "PortfolioManager": "idle",
             "ReflectionAgent": "idle",
+            "StrategyResearchAgent": "idle",
         }
         self._cycle_count = 0
         self._last_analysis: Dict[str, float] = {}  # symbol -> timestamp
@@ -93,9 +102,9 @@ class TradingEngine:
         # Load persisted state
         state = await db.get_runtime_state()
         if state:
-            self._balance = float(state.get("current_balance", 100000))
-            self._initial_balance = float(state.get("initial_balance", 100000))
-            self._peak_balance = float(state.get("peak_balance", 100000))
+            self._balance = float(state.get("current_balance", 5000))
+            self._initial_balance = float(state.get("initial_balance", 5000))
+            self._peak_balance = float(state.get("peak_balance", 5000))
 
         await db.update_runtime_state(
             is_active=True,
@@ -156,7 +165,7 @@ class TradingEngine:
         elif event_type == "candle" and data.get("is_closed"):
             await self._emit("candle", data)
         elif event_type == "connected":
-            await self._log_agent("PortfolioManager", "📡 Live market feed connected — streaming BTC/USDT, ETH/USDT", "signal")
+            await self._log_agent("PortfolioManager", "📡 Live forex feed connected — streaming EUR/USD, GBP/USD", "signal")
 
     async def _analysis_loop(self):
         """
@@ -180,8 +189,16 @@ class TradingEngine:
 
     async def _run_cycle(self):
         """One full analysis cycle across all symbols."""
+        # Emit session + strategy info every cycle
+        session = self.macro.get_session()
+        strategy_status = self.strategy_research.get_status()
+        await self._emit("session_info", {
+            "session": session,
+            "strategy": strategy_status["active_strategy"],
+            "strategy_id": strategy_status["strategy_id"],
+        })
+
         for symbol in SYMBOLS:
-            # Don't re-analyze too soon
             last = self._last_analysis.get(symbol, 0)
             if time.time() - last < ANALYSIS_INTERVAL * 0.8:
                 continue
@@ -214,13 +231,50 @@ class TradingEngine:
             return
 
         await self._log_agent("TechnicalAgent",
-            f"{symbol} @ ${price:,.2f} — {tech_signal.signal} ({tech_signal.confidence:.0%}) | {tech_signal.reasoning[:80]}",
+            f"{symbol} @ {price:.5f} — {tech_signal.signal} ({tech_signal.confidence:.0%}) | {tech_signal.reasoning[:80]}",
             "signal" if tech_signal.signal != "HOLD" else "info", symbol,
             {"indicators": tech_signal.indicators})
 
         self._agent_status["TechnicalAgent"] = "idle"
 
         if tech_signal.signal == "HOLD":
+            return
+
+        # === MACRO AGENT (session + news) ===
+        self._agent_status["MacroAgent"] = "analyzing"
+        await self._emit("agent_status", self._agent_status)
+
+        macro_result = await self.macro.analyze(symbol, price)
+        await self._log_agent("MacroAgent",
+            f"{symbol}: {macro_result['session']} session (bias {macro_result['session_bias']:.0%}) | "
+            f"{macro_result['news_context'][:70]}",
+            "info" if macro_result["trading_recommended"] else "warning", symbol)
+
+        self._agent_status["MacroAgent"] = "idle"
+        await self._emit("agent_status", self._agent_status)
+
+        if not macro_result["trading_recommended"]:
+            await self._log_agent("MacroAgent",
+                f"{symbol}: ⚠ {macro_result['session']} session — low liquidity, skipping",
+                "warning", symbol)
+            return
+
+        # === LIQUIDITY AGENT (regime + spread) ===
+        self._agent_status["LiquidityAgent"] = "analyzing"
+        await self._emit("agent_status", self._agent_status)
+
+        closes_for_liquidity = market_feed.candle_store.get_closes(symbol, "1m", 50)
+        atr_pct_for_liq = tech_signal.indicators.get("atr_pct", 0.08) or 0.08
+        liquidity_result = self.liquidity.analyze(symbol, closes_for_liquidity, atr_pct_for_liq)
+        await self._log_agent("LiquidityAgent",
+            f"{symbol}: {liquidity_result['regime']} | Vol: {liquidity_result['volatility']} "
+            f"| Spread: {liquidity_result['spread_pips']:.1f}p | Tradeable: {liquidity_result['tradeable']}",
+            "info" if liquidity_result["tradeable"] else "warning", symbol)
+
+        self._agent_status["LiquidityAgent"] = "idle"
+        await self._emit("agent_status", self._agent_status)
+
+        if not liquidity_result["tradeable"]:
             return
 
         # === SENTIMENT AGENT ===
@@ -343,8 +397,8 @@ class TradingEngine:
 
         # Log and broadcast
         await self._log_agent("PortfolioManager",
-            f"📈 OPENED {direction.upper()} #{trade_id} {symbol} @ ${entry_params['entry_price']:,.2f} | "
-            f"SL: ${entry_params['stop_loss']:,.2f} | TP: ${entry_params['take_profit']:,.2f} | "
+            f"📈 OPENED {direction.upper()} #{trade_id} {symbol} @ {entry_params['entry_price']:.5f} | "
+            f"SL: {entry_params['stop_loss']:.5f} | TP: {entry_params['take_profit']:.5f} | "
             f"R:R {entry_params['risk_reward']:.2f}:1 | Size: {lot_size:.6f}",
             "signal", symbol)
 
@@ -412,14 +466,44 @@ class TradingEngine:
         emoji = "💚" if pnl > 0 else "🔴"
         await self._log_agent("PortfolioManager",
             f"{emoji} CLOSED #{trade['id']} {trade['direction'].upper()} {trade['symbol']} "
-            f"@ ${trade['exit_price']:,.2f} | P&L: ${pnl:+.2f} ({trade['pnl_pct']:+.2f}%) "
+            f"@ {trade['exit_price']:.5f} | P&L: ${pnl:+.2f} ({trade['pnl_pct']:+.2f}%) "
             f"| Balance: ${self._balance:,.2f} | Reason: {trade.get('close_reason', '')}",
             "signal" if pnl > 0 else "warning", trade["symbol"])
 
         await self._emit("trade_closed", {**trade, "balance": self._balance})
         await self._update_balance_display()
 
-        # Reflection
+        # === STRATEGY RESEARCH AGENT — record + evaluate ===
+        self._agent_status["StrategyResearchAgent"] = "reflecting"
+        await self._emit("agent_status", self._agent_status)
+
+        active_strat = self.strategy_research.get_active_strategy_id()
+        self.strategy_research.record_trade(active_strat, float(trade["pnl"]))
+
+        # Check if strategy needs to evolve
+        current_regime = "TRENDING"  # default; ideally from last liquidity analysis
+        evolution_msg = await self.strategy_research.evaluate_and_evolve(current_regime)
+        if evolution_msg:
+            await self._log_agent("StrategyResearchAgent", evolution_msg, "warning", trade["symbol"])
+            # Broadcast updated strategy info
+            strat_status = self.strategy_research.get_status()
+            await self._emit("session_info", {
+                "session": self.macro.get_session(),
+                "strategy": strat_status["active_strategy"],
+                "strategy_id": strat_status["strategy_id"],
+            })
+        else:
+            strat_status = self.strategy_research.get_status()
+            await self._log_agent("StrategyResearchAgent",
+                f"Strategy '{strat_status['active_strategy']}': "
+                f"{strat_status['trades']} trades | WR {strat_status['win_rate']:.1f}% | "
+                f"P&L ${strat_status['total_pnl']:+.2f}",
+                "info", trade["symbol"])
+
+        self._agent_status["StrategyResearchAgent"] = "idle"
+        await self._emit("agent_status", self._agent_status)
+
+        # === REFLECTION AGENT ===
         self._agent_status["ReflectionAgent"] = "reflecting"
         await self._emit("agent_status", self._agent_status)
 

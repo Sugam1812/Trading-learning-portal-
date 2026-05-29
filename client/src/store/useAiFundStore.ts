@@ -35,9 +35,12 @@ export interface AiTrade {
 export interface AgentStatus {
   TechnicalAgent: string
   SentimentAgent: string
+  MacroAgent: string
+  LiquidityAgent: string
   RiskAgent: string
   PortfolioManager: string
   ReflectionAgent: string
+  StrategyResearchAgent: string
 }
 
 export interface TickerData {
@@ -81,6 +84,11 @@ interface AiFundState {
   // Equity curve history
   balanceHistory: { time: string; balance: number }[]
 
+  // Forex session + active strategy
+  currentSession: string
+  currentStrategy: string
+  currentStrategyId: string
+
   // Actions
   connect: () => void
   disconnect: () => void
@@ -114,13 +122,19 @@ export const useAiFundStore = create<AiFundState>()((set, get) => ({
   agentStatus: {
     TechnicalAgent: 'idle',
     SentimentAgent: 'idle',
+    MacroAgent: 'idle',
+    LiquidityAgent: 'idle',
     RiskAgent: 'idle',
     PortfolioManager: 'idle',
     ReflectionAgent: 'idle',
+    StrategyResearchAgent: 'idle',
   },
   agentLogs: [],
   tickers: {},
   balanceHistory: [],
+  currentSession: 'LONDON',
+  currentStrategy: 'EMA Trend Following',
+  currentStrategyId: 'trend_following',
 
   connect: () => {
     if (wsInstance && wsInstance.readyState === WebSocket.OPEN) return
@@ -312,6 +326,16 @@ function handleWsMessage(
         initialBalance: d.initial_balance,
         balanceHistory: [...state.balanceHistory, { time: now, balance: d.balance }].slice(-100),
       }))
+      break
+    }
+
+    case 'session_info': {
+      const d = data as { session: string; strategy: string; strategy_id: string }
+      set({
+        currentSession: d.session || 'UNKNOWN',
+        currentStrategy: d.strategy || 'EMA Trend Following',
+        currentStrategyId: d.strategy_id || 'trend_following',
+      })
       break
     }
 

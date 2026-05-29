@@ -2,24 +2,31 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Activity, Cpu, TrendingUp, TrendingDown, AlertTriangle,
   Play, Square, Zap, Brain, Shield, BarChart3, RefreshCw,
-  ChevronRight, Circle, Wifi, WifiOff, Database, MessageSquare
+  ChevronRight, Circle, Wifi, WifiOff, Database, MessageSquare,
+  Globe, Layers, Search
 } from 'lucide-react'
 import { useAiFundStore, AgentLog } from '../store/useAiFundStore'
 
 const AGENT_COLORS: Record<string, string> = {
-  TechnicalAgent:   '#00e5ff',
-  SentimentAgent:   '#a855f7',
-  RiskAgent:        '#f59e0b',
-  PortfolioManager: '#22c55e',
-  ReflectionAgent:  '#f472b6',
+  TechnicalAgent:        '#00e5ff',
+  SentimentAgent:        '#a855f7',
+  MacroAgent:            '#10b981',
+  LiquidityAgent:        '#6366f1',
+  RiskAgent:             '#f59e0b',
+  PortfolioManager:      '#22c55e',
+  ReflectionAgent:       '#f472b6',
+  StrategyResearchAgent: '#ec4899',
 }
 
 const AGENT_ICONS: Record<string, typeof Activity> = {
-  TechnicalAgent:   BarChart3,
-  SentimentAgent:   Brain,
-  RiskAgent:        Shield,
-  PortfolioManager: Cpu,
-  ReflectionAgent:  RefreshCw,
+  TechnicalAgent:        BarChart3,
+  SentimentAgent:        Brain,
+  MacroAgent:            Globe,
+  LiquidityAgent:        Layers,
+  RiskAgent:             Shield,
+  PortfolioManager:      Cpu,
+  ReflectionAgent:       RefreshCw,
+  StrategyResearchAgent: Search,
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -32,6 +39,14 @@ const STATUS_COLOR: Record<string, string> = {
   warning:    '#f59e0b',
   critical:   '#ef4444',
   info:       '#64748b',
+}
+
+const SESSION_COLORS: Record<string, string> = {
+  LONDON:   '#00e5ff',
+  OVERLAP:  '#22c55e',
+  NEW_YORK: '#f59e0b',
+  ASIAN:    '#475569',
+  UNKNOWN:  '#334155',
 }
 
 interface MemoryEntry {
@@ -58,30 +73,30 @@ function AgentCard({ name, status }: { name: string; status: string }) {
 
   return (
     <div
-      className="relative flex flex-col items-center gap-2 p-3 rounded-lg border transition-all duration-300"
+      className="relative flex flex-col items-center gap-1.5 p-2.5 rounded-lg border transition-all duration-300"
       style={{
         borderColor: isActive ? color + '60' : '#1e293b',
         background: isActive ? color + '08' : '#0a1628',
-        boxShadow: isActive ? `0 0 20px ${color}20` : 'none',
+        boxShadow: isActive ? `0 0 16px ${color}20` : 'none',
       }}
     >
       <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center"
+        className="w-7 h-7 rounded-lg flex items-center justify-center"
         style={{ background: color + '15', border: `1px solid ${color}40` }}
       >
-        <Icon size={14} style={{ color }} />
+        <Icon size={12} style={{ color }} />
       </div>
       <div className="text-center">
-        <div className="text-[8px] font-bold tracking-widest font-hud text-slate-400">
-          {name.replace('Agent', '').toUpperCase()}
+        <div className="text-[7px] font-bold tracking-widest font-hud text-slate-400 leading-tight">
+          {name.replace('Agent', '').replace('Research', 'RES').toUpperCase()}
         </div>
-        <div className="text-[8px] font-hud mt-0.5" style={{ color: sColor }}>
+        <div className="text-[7px] font-hud mt-0.5" style={{ color: sColor }}>
           {status.toUpperCase()}
         </div>
       </div>
       {isActive && (
         <div
-          className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full animate-pulse"
+          className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full animate-pulse"
           style={{ background: sColor }}
         />
       )}
@@ -168,6 +183,7 @@ export default function AiFund() {
     wsConnected, wsError, isRunning,
     balance, initialBalance, totalPnl, totalPnlPct, dailyPnl, drawdownPct, peakBalance,
     openTrades, closedTrades, agentStatus, agentLogs, tickers, balanceHistory,
+    currentSession, currentStrategy,
     connect, disconnect, startFund, stopFund, clearLogs,
   } = useAiFundStore()
 
@@ -211,8 +227,9 @@ export default function AiFund() {
 
   const pnlColor = totalPnl >= 0 ? '#22c55e' : '#ef4444'
   const dailyPnlColor = dailyPnl >= 0 ? '#22c55e' : '#ef4444'
-  const btc = tickers['BTC/USDT']
-  const eth = tickers['ETH/USDT']
+  const eurusd = tickers['EUR/USD']
+  const gbpusd = tickers['GBP/USD']
+  const sessionColor = SESSION_COLORS[currentSession] || SESSION_COLORS.UNKNOWN
 
   const filteredLogs = logFilter === 'all'
     ? agentLogs
@@ -222,7 +239,6 @@ export default function AiFund() {
 
   return (
     <div className="flex flex-col h-full bg-bg-primary" style={{ minHeight: '100vh' }}>
-      {/* Scanline overlay */}
       <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.02]"
            style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,229,255,0.5) 2px, rgba(0,229,255,0.5) 4px)' }} />
 
@@ -240,31 +256,41 @@ export default function AiFund() {
               HERMES AI FUND
             </div>
             <div className="text-[9px] tracking-widest text-slate-600 font-hud">
-              AUTONOMOUS PAPER TRADING SYSTEM v2.0
+              AUTONOMOUS EUR/USD PAPER TRADING · $5,000 DEMO · 8 AGENTS
             </div>
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-4">
-          {btc && (
+        {/* Forex Tickers */}
+        <div className="hidden md:flex items-center gap-3">
+          {/* Session badge */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border"
+               style={{ background: sessionColor + '10', borderColor: sessionColor + '40' }}>
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: sessionColor }} />
+            <span className="text-[9px] font-bold font-hud tracking-wider" style={{ color: sessionColor }}>
+              {currentSession}
+            </span>
+          </div>
+
+          {eurusd && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-800"
                  style={{ background: '#0a1628' }}>
-              <span className="text-[9px] text-slate-500 font-hud tracking-wider">BTC/USDT</span>
-              <span className="text-xs font-bold font-mono text-slate-200">${btc.price.toLocaleString()}</span>
+              <span className="text-[9px] text-slate-500 font-hud tracking-wider">EUR/USD</span>
+              <span className="text-xs font-bold font-mono text-slate-200">{eurusd.price.toFixed(5)}</span>
               <span className="text-[9px] font-mono"
-                    style={{ color: btc.change_pct >= 0 ? '#22c55e' : '#ef4444' }}>
-                {btc.change_pct >= 0 ? '+' : ''}{btc.change_pct.toFixed(2)}%
+                    style={{ color: eurusd.change_pct >= 0 ? '#22c55e' : '#ef4444' }}>
+                {eurusd.change_pct >= 0 ? '+' : ''}{eurusd.change_pct.toFixed(4)}
               </span>
             </div>
           )}
-          {eth && (
+          {gbpusd && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-800"
                  style={{ background: '#0a1628' }}>
-              <span className="text-[9px] text-slate-500 font-hud tracking-wider">ETH/USDT</span>
-              <span className="text-xs font-bold font-mono text-slate-200">${eth.price.toLocaleString()}</span>
+              <span className="text-[9px] text-slate-500 font-hud tracking-wider">GBP/USD</span>
+              <span className="text-xs font-bold font-mono text-slate-200">{gbpusd.price.toFixed(5)}</span>
               <span className="text-[9px] font-mono"
-                    style={{ color: eth.change_pct >= 0 ? '#22c55e' : '#ef4444' }}>
-                {eth.change_pct >= 0 ? '+' : ''}{eth.change_pct.toFixed(2)}%
+                    style={{ color: gbpusd.change_pct >= 0 ? '#22c55e' : '#ef4444' }}>
+                {gbpusd.change_pct >= 0 ? '+' : ''}{gbpusd.change_pct.toFixed(4)}
               </span>
             </div>
           )}
@@ -325,12 +351,12 @@ export default function AiFund() {
            style={{ maxHeight: 'calc(100vh - 68px)' }}>
 
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
-        <div className="col-span-12 lg:col-span-8 flex flex-col gap-4 overflow-y-auto">
+        <div className="col-span-12 lg:col-span-8 flex flex-col gap-3 overflow-y-auto">
 
           {/* PORTFOLIO STATS */}
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
             {[
-              { label: 'BALANCE', value: `$${balance.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: '#00e5ff', icon: Database },
+              { label: 'DEMO BAL', value: `$${balance.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: '#00e5ff', icon: Database },
               { label: 'TOTAL P&L', value: `${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}`, color: pnlColor, icon: TrendingUp, sub: `${totalPnlPct >= 0 ? '+' : ''}${totalPnlPct.toFixed(2)}%` },
               { label: 'DAILY P&L', value: `${dailyPnl >= 0 ? '+' : ''}$${dailyPnl.toFixed(2)}`, color: dailyPnlColor, icon: Activity },
               { label: 'DRAWDOWN', value: `${drawdownPct.toFixed(2)}%`, color: drawdownPct > 5 ? '#ef4444' : drawdownPct > 2 ? '#f59e0b' : '#22c55e', icon: TrendingDown },
@@ -350,28 +376,60 @@ export default function AiFund() {
             ))}
           </div>
 
-          {/* AGENT NETWORK */}
+          {/* AGENT NETWORK — 8 agents */}
           <div className="rounded-xl border border-slate-800 p-4" style={{ background: '#070f1c' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="text-[9px] tracking-[0.2em] text-slate-500 font-hud">AGENT NEURAL NETWORK</div>
-              <div className="text-[8px] tracking-wider text-slate-600 font-hud">5 AGENTS ONLINE</div>
+              <div className="text-[8px] tracking-wider text-slate-600 font-hud">8 AGENTS ONLINE</div>
             </div>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-8 gap-1.5">
               {Object.entries(agentStatus).map(([name, status]) => (
                 <AgentCard key={name} name={name} status={status} />
               ))}
             </div>
           </div>
 
+          {/* STRATEGY ENGINE */}
+          <div className="rounded-xl border border-purple-500/20 p-4"
+               style={{ background: 'linear-gradient(135deg, #070f1c, #0d0a1f)' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                     style={{ background: '#ec489910', border: '1px solid #ec489940' }}>
+                  <Search size={14} style={{ color: '#ec4899' }} />
+                </div>
+                <div>
+                  <div className="text-[9px] tracking-[0.15em] text-slate-500 font-hud">ACTIVE STRATEGY</div>
+                  <div className="text-xs font-bold font-hud text-purple-400 mt-0.5">
+                    {currentStrategy || 'EMA TREND FOLLOWING'}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-[8px] text-slate-600 font-hud">SESSION</div>
+                  <div className="text-[9px] font-bold font-hud" style={{ color: sessionColor }}>
+                    {currentSession}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg"
+                     style={{ background: '#ec489910', border: '1px solid #ec489930' }}>
+                  <div className="w-1 h-1 rounded-full bg-pink-500 animate-pulse" />
+                  <span className="text-[8px] font-bold font-hud text-pink-400">EVOLVING</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* TRADES PANEL */}
           <div className="flex-1 rounded-xl border border-slate-800 overflow-hidden"
-               style={{ background: '#070f1c', minHeight: '200px' }}>
+               style={{ background: '#070f1c', minHeight: '180px' }}>
             <div className="flex border-b border-slate-800">
               {(['positions', 'history', 'memory'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-[9px] font-bold tracking-widest font-hud transition-colors border-b-2"
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-[9px] font-bold tracking-widest font-hud transition-colors border-b-2"
                   style={{
                     borderBottomColor: activeTab === tab ? '#00e5ff' : 'transparent',
                     color: activeTab === tab ? '#00e5ff' : '#475569',
@@ -379,24 +437,24 @@ export default function AiFund() {
                   }}
                 >
                   {tab === 'positions' ? (
-                    <><Activity size={10} />OPEN POSITIONS ({openTrades.length})</>
+                    <><Activity size={9} />OPEN ({openTrades.length})</>
                   ) : tab === 'history' ? (
-                    <><ChevronRight size={10} />TRADE HISTORY ({closedTrades.length})</>
+                    <><ChevronRight size={9} />HISTORY ({closedTrades.length})</>
                   ) : (
-                    <><Brain size={10} />NEURAL MEMORY ({memoryEntries.length})</>
+                    <><Brain size={9} />MEMORY ({memoryEntries.length})</>
                   )}
                 </button>
               ))}
             </div>
 
-            <div className="overflow-y-auto" style={{ maxHeight: '280px' }}>
+            <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
               {activeTab === 'positions' ? (
                 openTrades.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-700">
-                    <Activity size={24} className="mb-2 opacity-30" />
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-700">
+                    <Activity size={22} className="mb-2 opacity-30" />
                     <div className="text-[9px] tracking-widest font-hud">NO OPEN POSITIONS</div>
                     <div className="text-[8px] text-slate-800 mt-1">
-                      {isRunning ? 'AGENTS SCANNING MARKETS...' : 'START AI FUND TO BEGIN TRADING'}
+                      {isRunning ? 'AGENTS SCANNING EUR/USD...' : 'START AI FUND TO BEGIN TRADING'}
                     </div>
                   </div>
                 ) : (
@@ -417,7 +475,7 @@ export default function AiFund() {
                             <td className="px-3 py-2 text-[9px] font-mono text-slate-500">#{trade.id}</td>
                             <td className="px-3 py-2">
                               <span className="text-[9px] font-bold font-hud tracking-wider text-slate-300">
-                                {trade.symbol.replace('/USDT', '')}
+                                {trade.symbol.replace('/USD', '')}
                               </span>
                             </td>
                             <td className="px-3 py-2">
@@ -427,29 +485,26 @@ export default function AiFund() {
                               </span>
                             </td>
                             <td className="px-3 py-2 font-mono text-[9px] text-slate-400">
-                              ${Number(trade.entry_price).toLocaleString()}
+                              {Number(trade.entry_price).toFixed(5)}
                             </td>
                             <td className="px-3 py-2 font-mono text-[9px]" style={{ color: tPnlColor }}>
-                              {trade.current_price ? `$${Number(trade.current_price).toLocaleString()}` : '—'}
+                              {trade.current_price ? Number(trade.current_price).toFixed(5) : '—'}
                             </td>
                             <td className="px-3 py-2 font-mono text-[9px] text-red-500/70">
-                              ${Number(trade.stop_loss).toLocaleString()}
+                              {Number(trade.stop_loss).toFixed(5)}
                             </td>
                             <td className="px-3 py-2 font-mono text-[9px] text-green-500/70">
-                              ${Number(trade.take_profit).toLocaleString()}
+                              {Number(trade.take_profit).toFixed(5)}
                             </td>
                             <td className="px-3 py-2 font-mono text-[9px] font-bold" style={{ color: tPnlColor }}>
                               {(trade.live_pnl ?? 0) >= 0 ? '+' : ''}${(trade.live_pnl ?? 0).toFixed(2)}
-                              <span className="text-[8px] ml-1 opacity-70">
-                                ({(trade.live_pnl_pct ?? 0) >= 0 ? '+' : ''}{(trade.live_pnl_pct ?? 0).toFixed(2)}%)
-                              </span>
                               {trade.trailing_activated && (
                                 <span className="ml-1 text-[7px] text-yellow-500">TRAIL</span>
                               )}
                             </td>
                             <td className="px-3 py-2">
                               <div className="flex items-center gap-1">
-                                <div className="w-12 h-1.5 rounded-full bg-slate-800">
+                                <div className="w-10 h-1.5 rounded-full bg-slate-800">
                                   <div className="h-full rounded-full bg-cyber-cyan"
                                        style={{ width: `${Math.min(100, (trade.confidence ?? 0) * 100)}%` }} />
                                 </div>
@@ -466,8 +521,8 @@ export default function AiFund() {
                 )
               ) : activeTab === 'history' ? (
                 closedTrades.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-700">
-                    <Database size={24} className="mb-2 opacity-30" />
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-700">
+                    <Database size={22} className="mb-2 opacity-30" />
                     <div className="text-[9px] tracking-widest font-hud">NO TRADE HISTORY</div>
                   </div>
                 ) : (
@@ -488,7 +543,7 @@ export default function AiFund() {
                           <tr key={trade.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
                             <td className="px-3 py-2 text-[9px] font-mono text-slate-500">#{trade.id}</td>
                             <td className="px-3 py-2 text-[9px] font-bold font-hud tracking-wider text-slate-300">
-                              {trade.symbol.replace('/USDT', '')}
+                              {trade.symbol.replace('/USD', '')}
                             </td>
                             <td className="px-3 py-2">
                               <span className="text-[8px] font-bold font-hud px-1.5 py-0.5 rounded"
@@ -497,10 +552,10 @@ export default function AiFund() {
                               </span>
                             </td>
                             <td className="px-3 py-2 font-mono text-[9px] text-slate-400">
-                              ${Number(trade.entry_price).toLocaleString()}
+                              {Number(trade.entry_price).toFixed(5)}
                             </td>
                             <td className="px-3 py-2 font-mono text-[9px] text-slate-400">
-                              {trade.exit_price ? `$${Number(trade.exit_price).toLocaleString()}` : '—'}
+                              {trade.exit_price ? Number(trade.exit_price).toFixed(5) : '—'}
                             </td>
                             <td className="px-3 py-2 font-mono text-[9px] font-bold" style={{ color: tPnlColor }}>
                               {(trade.pnl ?? 0) >= 0 ? '+' : ''}${(trade.pnl ?? 0).toFixed(2)}
@@ -519,10 +574,9 @@ export default function AiFund() {
                   </table>
                 )
               ) : (
-                /* NEURAL MEMORY TAB */
                 memoryEntries.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-700">
-                    <Brain size={24} className="mb-2 opacity-30" />
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-700">
+                    <Brain size={22} className="mb-2 opacity-30" />
                     <div className="text-[9px] tracking-widest font-hud">NO MEMORIES YET</div>
                     <div className="text-[8px] text-slate-800 mt-1">LESSONS STORED AFTER TRADES CLOSE</div>
                   </div>
@@ -530,30 +584,26 @@ export default function AiFund() {
                   <div className="p-3 space-y-2">
                     {memoryEntries.map(m => {
                       const mColor = AGENT_COLORS[m.agent_name] || '#64748b'
-                      const importancePct = Math.round(m.importance * 100)
+                      const pct = Math.round(m.importance * 100)
                       return (
                         <div key={m.id} className="p-3 rounded-lg border"
                              style={{ background: mColor + '08', borderColor: mColor + '30' }}>
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2">
-                              <span className="text-[8px] font-bold font-hud tracking-wider"
-                                    style={{ color: mColor }}>
+                              <span className="text-[8px] font-bold font-hud tracking-wider" style={{ color: mColor }}>
                                 {m.agent_name.replace('Agent', '').toUpperCase()}
                               </span>
                               <span className="text-[7px] font-hud text-slate-600 uppercase">{m.memory_type}</span>
-                              {m.symbol && (
-                                <span className="text-[7px] font-mono text-slate-700">[{m.symbol}]</span>
-                              )}
+                              {m.symbol && <span className="text-[7px] font-mono text-slate-700">[{m.symbol}]</span>}
                             </div>
-                            <span className="text-[7px] font-mono text-slate-700">{importancePct}%</span>
+                            <span className="text-[7px] font-mono text-slate-700">{pct}%</span>
                           </div>
                           <p className="text-[9px] text-slate-400 leading-relaxed"
                              style={{ fontFamily: 'Share Tech Mono, monospace' }}>
                             {m.content.slice(0, 140)}{m.content.length > 140 ? '...' : ''}
                           </p>
                           <div className="mt-2 h-0.5 rounded-full bg-slate-800">
-                            <div className="h-full rounded-full transition-all duration-500"
-                                 style={{ width: `${importancePct}%`, background: mColor }} />
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: mColor }} />
                           </div>
                         </div>
                       )
@@ -586,7 +636,7 @@ export default function AiFund() {
                 {totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}
               </span>
             </div>
-            <SparkLine data={balanceHistory} height={48} />
+            <SparkLine data={balanceHistory} height={44} />
             {balanceHistory.length >= 2 && (
               <div className="flex justify-between mt-1">
                 <span className="text-[7px] font-mono text-slate-700">{balanceHistory[0].time}</span>
@@ -599,8 +649,7 @@ export default function AiFund() {
 
           {/* AI DEBATE / TELEMETRY */}
           <div className="flex-1 rounded-xl border border-slate-800 overflow-hidden flex flex-col"
-               style={{ background: '#070f1c', maxHeight: 'calc(100vh - 300px)' }}>
-            {/* Header */}
+               style={{ background: '#070f1c', maxHeight: 'calc(100vh - 310px)' }}>
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-cyber-cyan animate-pulse" />
@@ -608,7 +657,7 @@ export default function AiFund() {
                   {debateMode ? 'AI DEBATE TERMINAL' : 'AGENT TELEMETRY'}
                 </span>
                 <span className="text-[8px] font-mono text-slate-600">
-                  {debateMode ? `${debateCycles.length} cycles` : `${agentLogs.length} entries`}
+                  {debateMode ? `${debateCycles.length} cycles` : `${agentLogs.length}`}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -625,28 +674,25 @@ export default function AiFund() {
                   {debateMode ? 'DEBATE' : 'LOG'}
                 </button>
                 {!debateMode && (
-                  <button
-                    onClick={clearLogs}
-                    className="text-[8px] text-slate-600 hover:text-slate-400 font-hud tracking-wider transition-colors"
-                  >
+                  <button onClick={clearLogs}
+                          className="text-[8px] text-slate-600 hover:text-slate-400 font-hud tracking-wider transition-colors">
                     CLEAR
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Filter tabs (log mode) */}
             {!debateMode && (
               <div className="flex gap-1 px-3 py-2 border-b border-slate-800 flex-wrap">
-                {['all', 'signal', 'warning', 'TechnicalAgent', 'SentimentAgent', 'RiskAgent', 'PortfolioManager'].map(f => (
+                {['all', 'signal', 'warning', 'TechnicalAgent', 'MacroAgent', 'LiquidityAgent', 'SentimentAgent', 'RiskAgent'].map(f => (
                   <button
                     key={f}
                     onClick={() => setLogFilter(f)}
                     className="px-2 py-0.5 rounded text-[7px] font-bold tracking-wider font-hud transition-colors"
                     style={{
-                      color: logFilter === f ? '#00e5ff' : '#475569',
-                      background: logFilter === f ? '#00e5ff15' : 'transparent',
-                      border: `1px solid ${logFilter === f ? '#00e5ff40' : '#1e293b'}`,
+                      color: logFilter === f ? (AGENT_COLORS[f] || '#00e5ff') : '#475569',
+                      background: logFilter === f ? (AGENT_COLORS[f] || '#00e5ff') + '15' : 'transparent',
+                      border: `1px solid ${logFilter === f ? (AGENT_COLORS[f] || '#00e5ff') + '40' : '#1e293b'}`,
                     }}
                   >
                     {f.replace('Agent', '').toUpperCase()}
@@ -655,7 +701,6 @@ export default function AiFund() {
               </div>
             )}
 
-            {/* Content */}
             <div ref={logRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
               {debateMode ? (
                 debateCycles.length === 0 ? (
@@ -691,8 +736,7 @@ export default function AiFund() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                  <span className="text-[7px] font-bold font-hud"
-                                        style={{ color: agentColor }}>
+                                  <span className="text-[7px] font-bold font-hud" style={{ color: agentColor }}>
                                     {entry.agent.replace('Agent', '').toUpperCase()}
                                   </span>
                                   <LogLevel level={entry.level} />
@@ -721,15 +765,12 @@ export default function AiFund() {
                   filteredLogs.map((log, i) => {
                     const agentColor = AGENT_COLORS[log.agent] || '#64748b'
                     return (
-                      <div
-                        key={i}
-                        className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg border border-transparent hover:border-slate-800 transition-colors"
-                        style={{ background: '#0a1628' }}
-                      >
+                      <div key={i}
+                           className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg border border-transparent hover:border-slate-800 transition-colors"
+                           style={{ background: '#0a1628' }}>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-[7px] font-mono text-slate-700">{log.timestamp}</span>
-                          <span className="text-[7px] font-bold font-hud tracking-wider"
-                                style={{ color: agentColor }}>
+                          <span className="text-[7px] font-bold font-hud tracking-wider" style={{ color: agentColor }}>
                             {log.agent.replace('Agent', '').toUpperCase()}
                           </span>
                           {log.symbol && (
@@ -749,11 +790,10 @@ export default function AiFund() {
             </div>
           </div>
 
-          {/* DISCLAIMER */}
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
             <AlertTriangle size={10} className="text-yellow-500 flex-shrink-0" />
             <span className="text-[8px] text-yellow-500/70 font-hud tracking-wider">
-              PAPER TRADING ONLY — NO REAL MONEY
+              PAPER TRADING ONLY — $5,000 DEMO FOREX ACCOUNT — NO REAL MONEY
             </span>
           </div>
         </div>
