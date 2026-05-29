@@ -78,6 +78,9 @@ interface AiFundState {
   // Market
   tickers: Record<string, TickerData>
 
+  // Equity curve history
+  balanceHistory: { time: string; balance: number }[]
+
   // Actions
   connect: () => void
   disconnect: () => void
@@ -117,6 +120,7 @@ export const useAiFundStore = create<AiFundState>()((set, get) => ({
   },
   agentLogs: [],
   tickers: {},
+  balanceHistory: [],
 
   connect: () => {
     if (wsInstance && wsInstance.readyState === WebSocket.OPEN) return
@@ -298,14 +302,16 @@ function handleWsMessage(
         peak_balance: number
         initial_balance: number
       }
-      set({
+      const now = new Date().toLocaleTimeString('en', { hour12: false })
+      set(state => ({
         balance: d.balance,
         totalPnl: d.total_pnl,
         totalPnlPct: d.total_pnl_pct,
         drawdownPct: d.drawdown_pct,
         peakBalance: d.peak_balance,
         initialBalance: d.initial_balance,
-      })
+        balanceHistory: [...state.balanceHistory, { time: now, balance: d.balance }].slice(-100),
+      }))
       break
     }
 

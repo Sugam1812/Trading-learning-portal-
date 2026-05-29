@@ -242,13 +242,26 @@ class TradingEngine:
         sent_bear = sentiment["sentiment"] == "BEARISH"
 
         consensus = (tech_bull and sent_bull) or (tech_bear and sent_bear)
-        if not consensus:
+
+        # RSI extreme override: high-confidence extreme RSI signal bypasses sentiment consensus
+        rsi_val = tech_signal.indicators.get("rsi")
+        rsi_extreme = rsi_val is not None and (rsi_val < 30 or rsi_val > 70)
+        rsi_override = not consensus and tech_signal.confidence >= 0.70 and rsi_extreme
+
+        if not consensus and not rsi_override:
             await self._log_agent("PortfolioManager",
                 f"{symbol}: Technical + Sentiment DISAGREE — skipping trade", "info", symbol)
             return
 
-        # Combined confidence
-        combined_confidence = (tech_signal.confidence * 0.6 + sentiment["confidence"] * 0.4)
+        # Combined confidence (RSI override carries a 50% size penalty)
+        if rsi_override:
+            combined_confidence = tech_signal.confidence * 0.5
+            await self._log_agent("PortfolioManager",
+                f"{symbol}: ⚡ RSI EXTREME OVERRIDE {rsi_val:.1f} — proceeding with 50% position size",
+                "warning", symbol)
+        else:
+            combined_confidence = tech_signal.confidence * 0.6 + sentiment["confidence"] * 0.4
+
         direction = "long" if tech_signal.signal == "LONG" else "short"
 
         # === RISK AGENT ===
