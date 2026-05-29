@@ -170,7 +170,7 @@ class RiskAgent:
                        open_positions: int, daily_pnl: float,
                        initial_balance: float, runtime_state: Dict) -> Dict:
 
-        risk_per_trade = runtime_state.get("risk_per_trade", 1.5)
+        risk_per_trade = float(runtime_state.get("risk_per_trade", 1.5) or 1.5)
         max_daily_loss_pct = 5.0
         max_drawdown_pct = 10.0
 
@@ -183,14 +183,14 @@ class RiskAgent:
             issues.append(f"Confidence {confidence:.0%} below 45% threshold")
 
         # Daily loss limit
-        daily_loss_pct = abs(min(0, daily_pnl)) / initial_balance * 100
+        daily_loss_pct = abs(min(0, float(daily_pnl))) / float(initial_balance) * 100 if initial_balance else 0
         if daily_loss_pct >= max_daily_loss_pct:
             approved = False
             issues.append(f"Daily loss limit reached: {daily_loss_pct:.1f}%/{max_daily_loss_pct}%")
 
-        # Max drawdown
-        peak = runtime_state.get("peak_balance", initial_balance)
-        drawdown = (peak - balance) / peak * 100 if peak > 0 else 0
+        # Max drawdown — cast Decimal→float for arithmetic
+        peak = float(runtime_state.get("peak_balance", initial_balance) or initial_balance)
+        drawdown = (peak - float(balance)) / peak * 100 if peak > 0 else 0
         if drawdown >= max_drawdown_pct:
             approved = False
             issues.append(f"Max drawdown reached: {drawdown:.1f}%/{max_drawdown_pct}%")

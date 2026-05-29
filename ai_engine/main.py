@@ -151,19 +151,19 @@ async def get_performance():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    await websocket.accept()
 
-    # Send current state on connect
+    # Send init snapshot BEFORE joining broadcaster (prevents race with live events)
     try:
         state = await get_runtime_state()
         from db.database import get_open_trades, get_recent_trades
         open_trades = await get_open_trades()
         recent_trades = await get_recent_trades(20)
-
         await websocket.send_json({
             "type": "init",
             "data": {
-                "state": state,
+                "state": {k: float(v) if hasattr(v, '__float__') and not isinstance(v, bool) else v
+                          for k, v in state.items()},
                 "open_trades": open_trades,
                 "recent_trades": recent_trades,
                 "engine_running": trading_engine.running,
@@ -171,6 +171,9 @@ async def websocket_endpoint(websocket: WebSocket):
         })
     except Exception:
         pass
+
+    # Now join broadcaster for live events
+    manager._connections.add(websocket)
 
     try:
         while True:

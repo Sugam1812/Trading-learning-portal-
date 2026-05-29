@@ -73,10 +73,13 @@ def bollinger_bands(prices: List[float], period: int = 20, std_dev: float = 2.0)
 
 
 def atr(highs: List[float], lows: List[float], closes: List[float], period: int = 14) -> Optional[float]:
-    if len(closes) < period + 1:
+    # Use aligned length — closes may include live candle (1 longer than highs/lows)
+    n = min(len(highs), len(lows), len(closes))
+    if n < period + 1:
         return None
+    highs, lows, closes = highs[:n], lows[:n], closes[:n]
     trs = []
-    for i in range(1, len(closes)):
+    for i in range(1, n):
         tr = max(highs[i] - lows[i], abs(highs[i] - closes[i-1]), abs(lows[i] - closes[i-1]))
         trs.append(tr)
     return sum(trs[-period:]) / period
@@ -97,7 +100,7 @@ class TechnicalAgent:
         lows = candle_store.get_lows(symbol, "1m", 100)
         volumes = candle_store.get_volumes(symbol, "1m", 100)
 
-        if len(closes) < 35:
+        if len(closes) < 5:
             return None  # Not enough data yet
 
         price = closes[-1]

@@ -246,8 +246,8 @@ class MarketFeed:
                 self.tickers[sym] = ticker
                 await self._notify("ticker", ticker.to_dict())
 
-            # Every 60 ticks = new candle
-            if candle_age >= 60:
+            # Every 10s = new candle (fast simulation mode)
+            if candle_age >= 10:
                 for sym in SYMBOLS:
                     # Emit closed candle
                     closed = Candle(
@@ -273,7 +273,7 @@ class MarketFeed:
 
             tick_count += 1
             self.last_update = now * 1000
-            await asyncio.sleep(1)  # 1s ticks
+            await asyncio.sleep(0.5)  # 0.5s ticks
 
     async def stop(self):
         self._running = False
