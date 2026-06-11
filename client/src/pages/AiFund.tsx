@@ -7,7 +7,7 @@ import {
   Globe, Layers, Search, Briefcase, GraduationCap, Network,
   Gauge, Target, Flame, Sparkles, TrendingUp as TU, LayoutDashboard,
 } from 'lucide-react'
-import { useAiFundStore, AgentLog } from '../store/useAiFundStore'
+import { useAiFundStore, AgentLog, TickerData } from '../store/useAiFundStore'
 import {
   LiquidityGlobe, WeightTopography, NeuralNodeGraph,
   MiniGauge, HyperParam, ProbabilityBars,
@@ -965,7 +965,7 @@ function RiskScreen() {
 /* ════════════════════════════════════════════════════════════════════
    SCREEN 0 — COMMAND CENTER
    ════════════════════════════════════════════════════════════════════ */
-function CandleChart({ symbol, price, active }: { symbol: string; price: number; active: boolean }) {
+function CandleChart({ price, active, color = '#00e5ff' }: { price: number; active: boolean; color?: string }) {
   const [candles, setCandles] = useState<{ o: number; h: number; l: number; c: number }[]>([])
   useEffect(() => {
     if (!price) return
@@ -973,33 +973,44 @@ function CandleChart({ symbol, price, active }: { symbol: string; price: number;
       const last = prev[prev.length - 1]?.c ?? price
       const o = last
       const c = price
-      const h = Math.max(o, c) * (1 + Math.random() * 0.0004)
-      const l = Math.min(o, c) * (1 - Math.random() * 0.0004)
-      return [...prev, { o, h, l, c }].slice(-40)
+      const h = Math.max(o, c) * (1 + Math.random() * 0.0003)
+      const l = Math.min(o, c) * (1 - Math.random() * 0.0003)
+      return [...prev, { o, h, l, c }].slice(-50)
     })
   }, [price])
 
   if (candles.length < 2) return (
     <div className="flex items-center justify-center h-full text-[9px] font-hud text-slate-700">
-      {active ? 'BUILDING PREDICTION MATRIX...' : 'START FUND TO STREAM DATA'}
+      {active ? 'STREAMING PRICE DATA...' : 'START FUND TO STREAM DATA'}
     </div>
   )
   const all = candles.flatMap(c => [c.h, c.l])
   const max = Math.max(...all), min = Math.min(...all), range = max - min || 1
   const cw = 100 / candles.length
-  const y = (v: number) => 100 - ((v - min) / range) * 96 - 2
+  const y = (v: number) => 100 - ((v - min) / range) * 94 - 3
   return (
     <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`candleGrad-${color}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.12" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* background area fill following close prices */}
+      <path
+        d={`M0,100 ${candles.map((c, i) => `L${i * cw + cw / 2},${y(c.c)}`).join(' ')} L100,100 Z`}
+        fill={`url(#candleGrad-${color})`}
+      />
       {candles.map((c, i) => {
         const x = i * cw + cw / 2
         const up = c.c >= c.o
         const col = up ? '#22c55e' : '#ec4899'
         return (
           <g key={i}>
-            <line x1={x} y1={y(c.h)} x2={x} y2={y(c.l)} stroke={col} strokeWidth="0.3" opacity="0.7" />
-            <rect x={i * cw + cw * 0.2} y={y(Math.max(c.o, c.c))} width={cw * 0.6}
-              height={Math.max(0.5, Math.abs(y(c.o) - y(c.c)))} fill={col}
-              style={{ filter: `drop-shadow(0 0 1px ${col})` }} />
+            <line x1={x} y1={y(c.h)} x2={x} y2={y(c.l)} stroke={col} strokeWidth="0.25" opacity="0.6" />
+            <rect x={i * cw + cw * 0.18} y={y(Math.max(c.o, c.c))} width={cw * 0.64}
+              height={Math.max(0.4, Math.abs(y(c.o) - y(c.c)))} fill={col}
+              style={{ filter: `drop-shadow(0 0 1.5px ${col})` }} />
           </g>
         )
       })}
@@ -1007,82 +1018,162 @@ function CandleChart({ symbol, price, active }: { symbol: string; price: number;
   )
 }
 
+function PriceTicker({ sym, ticker, active }: { sym: string; ticker: TickerData | undefined; active: boolean }) {
+  const c = (ticker?.change_pct ?? 0) >= 0 ? '#22c55e' : '#ef4444'
+  return (
+    <GlowPanel color={c} className="p-4" glow>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[9px] tracking-[0.2em] font-bold font-hud text-slate-500">{sym}</span>
+        <div className={`w-1.5 h-1.5 rounded-full ${active && ticker ? 'animate-pulse' : ''}`} style={{ background: ticker ? c : '#334155', boxShadow: ticker ? `0 0 6px ${c}` : 'none' }} />
+      </div>
+      <div className="text-xl font-bold font-mono leading-none" style={{ color: ticker ? '#e2e8f0' : '#334155', textShadow: ticker ? `0 0 20px ${c}30` : 'none' }}>
+        {ticker ? ticker.price.toFixed(5) : '—.—————'}
+      </div>
+      <div className="flex items-center gap-2 mt-1.5">
+        <span className="text-[10px] font-bold font-mono" style={{ color: c }}>
+          {ticker ? `${(ticker.change_pct ?? 0) >= 0 ? '+' : ''}${(ticker.change_pct ?? 0).toFixed(4)}` : '±0.0000'}
+        </span>
+        <span className="text-[8px] font-hud text-slate-700">|</span>
+        <span className="text-[8px] font-hud text-slate-600">H: {ticker?.high_24h?.toFixed(5) ?? '—'}</span>
+        <span className="text-[8px] font-hud text-slate-600">L: {ticker?.low_24h?.toFixed(5) ?? '—'}</span>
+      </div>
+    </GlowPanel>
+  )
+}
+
 function CommandCenterScreen() {
-  const { tickers, agentLogs, agentStatus, isRunning, balance, totalPnl } = useAiFundStore()
+  const { tickers, agentLogs, agentStatus, isRunning, balance, totalPnl, openTrades, closedTrades, currentSession } = useAiFundStore()
   const eurusd = tickers['EUR/USD']
-  const recent = agentLogs.slice(0, 8)
+  const gbpusd = tickers['GBP/USD']
+  const recent = agentLogs.slice(0, 10)
   const pnlColor = totalPnl >= 0 ? '#22c55e' : '#ef4444'
+  const sessionColor = SESSION_COLORS[currentSession] || SESSION_COLORS.UNKNOWN
+  const wins = closedTrades.filter(t => (t.pnl ?? 0) > 0).length
+  const winRate = closedTrades.length ? (wins / closedTrades.length) * 100 : 0
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      {/* PREDICTION MATRIX */}
-      <GlowPanel color="#ec4899" className="lg:col-span-2 p-4 flex flex-col">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 size={12} style={{ color: '#ec4899' }} />
-            <span className="text-[10px] tracking-[0.2em] font-bold font-hud text-slate-400">EUR/USD PREDICTION MATRIX</span>
-          </div>
-          {eurusd && <span className="text-sm font-bold font-mono text-slate-200">{eurusd.price.toFixed(5)}</span>}
-        </div>
-        <div className="flex-1" style={{ minHeight: 260 }}>
-          <CandleChart symbol="EUR/USD" price={eurusd?.price ?? 0} active={isRunning} />
-        </div>
-      </GlowPanel>
-
-      {/* ENHANCEMENT AGENTS */}
-      <div className="flex flex-col gap-4">
-        <GlowPanel color="#22c55e" className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={12} style={{ color: '#22c55e' }} />
-            <span className="text-[10px] tracking-[0.2em] font-bold font-hud text-slate-400">ENHANCEMENT AGENTS</span>
-          </div>
-          <div className="space-y-2">
-            {[
-              { n: 'ALPHA · TECH', d: 'Analyzing technical structure', c: '#00e5ff' },
-              { n: 'META · SENTIMENT', d: 'Parsing social streams', c: '#a855f7' },
-              { n: 'GAMMA · RISK', d: 'Monitoring exposure limits', c: '#f59e0b' },
-            ].map((a, i) => (
-              <motion.div key={a.n} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
-                className="flex items-center gap-2.5 p-2.5 rounded-lg border" style={{ background: a.c + '08', borderColor: a.c + '25' }}>
-                <div className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'animate-pulse' : ''}`} style={{ background: a.c, boxShadow: `0 0 6px ${a.c}` }} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[9px] font-bold font-hud tracking-wider" style={{ color: a.c }}>{a.n}</div>
-                  <div className="text-[7px] font-hud text-slate-600 truncate">{a.d}</div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </GlowPanel>
+    <div className="flex flex-col gap-4">
+      {/* FOREX TICKERS + QUICK STATS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <PriceTicker sym="EUR/USD" ticker={eurusd} active={isRunning} />
+        <PriceTicker sym="GBP/USD" ticker={gbpusd} active={isRunning} />
         <GlowPanel color="#00e5ff" className="p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="text-center">
-              <div className="text-lg font-bold font-mono text-cyan-400">${balance.toFixed(0)}</div>
-              <div className="text-[8px] tracking-wider font-hud text-slate-600">BALANCE</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold font-mono" style={{ color: pnlColor }}>{totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(0)}</div>
-              <div className="text-[8px] tracking-wider font-hud text-slate-600">NET P&L</div>
-            </div>
-          </div>
+          <div className="text-[9px] tracking-[0.2em] font-bold font-hud text-slate-500 mb-1">DEMO BALANCE</div>
+          <div className="text-xl font-bold font-mono text-cyan-400">${balance.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div className="text-[8px] font-hud text-slate-600 mt-1">$5,000 STARTING CAPITAL</div>
+        </GlowPanel>
+        <GlowPanel color={pnlColor} className="p-4">
+          <div className="text-[9px] tracking-[0.2em] font-bold font-hud text-slate-500 mb-1">NET P&amp;L</div>
+          <div className="text-xl font-bold font-mono" style={{ color: pnlColor }}>{totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}</div>
+          <div className="text-[8px] font-hud mt-1" style={{ color: pnlColor + 'aa' }}>WIN RATE: {winRate.toFixed(0)}% · {closedTrades.length} TRADES</div>
         </GlowPanel>
       </div>
 
-      {/* AI DEBATE TERMINAL */}
-      <GlowPanel color="#a855f7" className="lg:col-span-3 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <MessageSquare size={12} style={{ color: '#a855f7' }} />
-          <span className="text-[10px] tracking-[0.2em] font-bold font-hud text-slate-400">AI DEBATE TERMINAL</span>
+      {/* CHARTS + AGENTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* EUR/USD CHART */}
+        <GlowPanel color="#00e5ff" className="lg:col-span-1 p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={11} style={{ color: '#00e5ff' }} />
+              <span className="text-[10px] tracking-[0.2em] font-bold font-hud text-slate-400">EUR/USD</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded" style={{ background: sessionColor + '15', border: `1px solid ${sessionColor}40` }}>
+              <div className="w-1 h-1 rounded-full animate-pulse" style={{ background: sessionColor }} />
+              <span className="text-[7px] font-bold font-hud" style={{ color: sessionColor }}>{currentSession}</span>
+            </div>
+          </div>
+          <div className="flex-1" style={{ minHeight: 160 }}>
+            <CandleChart price={eurusd?.price ?? 0} active={isRunning} color="#00e5ff" />
+          </div>
+        </GlowPanel>
+
+        {/* GBP/USD CHART */}
+        <GlowPanel color="#a855f7" className="lg:col-span-1 p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={11} style={{ color: '#a855f7' }} />
+              <span className="text-[10px] tracking-[0.2em] font-bold font-hud text-slate-400">GBP/USD</span>
+            </div>
+            {gbpusd && <span className="text-[10px] font-mono font-bold text-slate-300">{gbpusd.price.toFixed(5)}</span>}
+          </div>
+          <div className="flex-1" style={{ minHeight: 160 }}>
+            <CandleChart price={gbpusd?.price ?? 0} active={isRunning} color="#a855f7" />
+          </div>
+        </GlowPanel>
+
+        {/* AGENT STATUS + QUICK METRICS */}
+        <div className="flex flex-col gap-3">
+          <GlowPanel color="#22c55e" className="p-4 flex-1">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={11} style={{ color: '#22c55e' }} />
+              <span className="text-[10px] tracking-[0.2em] font-bold font-hud text-slate-400">ACTIVE AGENTS</span>
+            </div>
+            <div className="space-y-1.5">
+              {Object.entries(agentStatus).map(([name, status]) => {
+                const c = AGENT_COLORS[name] || '#00e5ff'
+                const Icon = AGENT_ICONS[name] || Activity
+                const active = status !== 'idle'
+                return (
+                  <div key={name} className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${active ? 'animate-pulse' : ''}`}
+                         style={{ background: active ? c : '#334155', boxShadow: active ? `0 0 6px ${c}` : 'none' }} />
+                    <Icon size={9} style={{ color: active ? c : '#475569' }} className="flex-shrink-0" />
+                    <span className="text-[8px] font-hud tracking-wider truncate flex-1" style={{ color: active ? c : '#475569' }}>
+                      {name.replace('Agent', '').replace('Research', ' RES').toUpperCase()}
+                    </span>
+                    <span className="text-[7px] font-bold font-hud flex-shrink-0" style={{ color: active ? c : '#334155' }}>{status.toUpperCase()}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </GlowPanel>
+          <GlowPanel color="#f59e0b" className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="text-center flex-1">
+                <div className="text-lg font-bold font-mono text-amber-400">{openTrades.length}</div>
+                <div className="text-[7px] tracking-wider font-hud text-slate-600">OPEN</div>
+              </div>
+              <div className="w-px h-8 bg-slate-800" />
+              <div className="text-center flex-1">
+                <div className="text-lg font-bold font-mono text-slate-300">{closedTrades.length}</div>
+                <div className="text-[7px] tracking-wider font-hud text-slate-600">CLOSED</div>
+              </div>
+              <div className="w-px h-8 bg-slate-800" />
+              <div className="text-center flex-1">
+                <div className="text-lg font-bold font-mono" style={{ color: winRate >= 50 ? '#22c55e' : '#f59e0b' }}>{winRate.toFixed(0)}%</div>
+                <div className="text-[7px] tracking-wider font-hud text-slate-600">WIN RATE</div>
+              </div>
+            </div>
+          </GlowPanel>
         </div>
-        <div className="space-y-1 font-mono" style={{ minHeight: 120 }}>
+      </div>
+
+      {/* AI DEBATE TERMINAL */}
+      <GlowPanel color="#a855f7" className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+            <MessageSquare size={11} style={{ color: '#a855f7' }} />
+            <span className="text-[10px] tracking-[0.2em] font-bold font-hud text-slate-400">AI DEBATE TERMINAL</span>
+          </div>
+          <span className="text-[8px] font-mono text-slate-700">{recent.length} MESSAGES</span>
+        </div>
+        <div className="space-y-1.5 font-mono" style={{ minHeight: 120 }}>
           {recent.length === 0 ? (
             <EmptyState icon={MessageSquare} title={isRunning ? 'AGENTS INITIALIZING...' : 'START FUND TO BEGIN'} />
           ) : recent.map((log, i) => {
             const ac = AGENT_COLORS[log.agent] || '#64748b'
+            const Icon = AGENT_ICONS[log.agent] || Activity
             return (
-              <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-2 text-[9px]">
-                <span className="text-slate-700">[{log.timestamp}]</span>
+              <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
+                className="flex items-start gap-2 text-[9px] px-2 py-1.5 rounded" style={{ background: i === 0 ? ac + '08' : 'transparent' }}>
+                <span className="text-slate-700 flex-shrink-0 mt-0.5">[{log.timestamp}]</span>
+                <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: ac + '15' }}>
+                  <Icon size={8} style={{ color: ac }} />
+                </div>
                 <span className="font-bold font-hud flex-shrink-0" style={{ color: ac }}>{log.agent.replace('Agent', '')}:</span>
-                <span className="text-slate-400 truncate">{log.message}</span>
+                <span className="text-slate-400 break-words min-w-0">{log.message}</span>
               </motion.div>
             )
           })}

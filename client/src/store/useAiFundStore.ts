@@ -110,9 +110,9 @@ export const useAiFundStore = create<AiFundState>()((set, get) => ({
   wsError: null,
   isRunning: false,
   isActive: false,
-  balance: 100000,
-  initialBalance: 100000,
-  peakBalance: 100000,
+  balance: 5000,
+  initialBalance: 5000,
+  peakBalance: 5000,
   totalPnl: 0,
   totalPnlPct: 0,
   dailyPnl: 0,
@@ -251,9 +251,9 @@ function handleWsMessage(
       set({
         isRunning: Boolean(data.engine_running),
         isActive: Boolean((state as Record<string, unknown>)?.is_active),
-        balance: Number((state as Record<string, unknown>)?.current_balance ?? 100000),
-        initialBalance: Number((state as Record<string, unknown>)?.initial_balance ?? 100000),
-        peakBalance: Number((state as Record<string, unknown>)?.peak_balance ?? 100000),
+        balance: Number((state as Record<string, unknown>)?.current_balance ?? 5000),
+        initialBalance: Number((state as Record<string, unknown>)?.initial_balance ?? 5000),
+        peakBalance: Number((state as Record<string, unknown>)?.peak_balance ?? 5000),
         openTrades,
         closedTrades: recentTrades.filter((t: AiTrade) => t.status === 'closed'),
       })
@@ -315,6 +315,7 @@ function handleWsMessage(
         drawdown_pct: number
         peak_balance: number
         initial_balance: number
+        daily_pnl?: number
       }
       const now = new Date().toLocaleTimeString('en', { hour12: false })
       set(state => ({
@@ -324,6 +325,7 @@ function handleWsMessage(
         drawdownPct: d.drawdown_pct,
         peakBalance: d.peak_balance,
         initialBalance: d.initial_balance,
+        dailyPnl: d.daily_pnl ?? state.dailyPnl,
         balanceHistory: [...state.balanceHistory, { time: now, balance: d.balance }].slice(-100),
       }))
       break
