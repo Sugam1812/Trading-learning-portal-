@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Svg, { G, Line, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { G, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
+import { smaSeries } from '@/lib/sma';
 import { useTheme } from '@/theme';
 import { PriceLine } from '@/types/content';
 import { Candle } from '@/types/trading';
@@ -27,6 +28,8 @@ interface Props {
   readout?: boolean;
   /** Max candles fitted into the viewport; older ones scroll off the left edge. */
   maxBars?: number;
+  /** Simple-moving-average overlays, e.g. [{ period: 20 }]. Computed on closes, no look-ahead. */
+  smaOverlays?: { period: number; color?: 'gold' | 'info' }[];
   accessibilityLabel?: string;
 }
 
@@ -46,6 +49,7 @@ export function CandleChart({
   onPressCandle,
   readout = true,
   maxBars = 70,
+  smaOverlays = [],
   accessibilityLabel,
 }: Props) {
   const t = useTheme();
@@ -173,6 +177,18 @@ export function CandleChart({
                   />
                 </G>
               );
+            })}
+
+            {/* SMA overlays */}
+            {smaOverlays.map((ov, oi) => {
+              const series = smaSeries(candles, ov.period, shown);
+              const pts = series
+                .map((v, i) => (v !== null && i >= start ? `${geom.x(i)},${geom.y(v)}` : null))
+                .filter((p): p is string => p !== null)
+                .join(' ');
+              if (!pts) return null;
+              const color = ov.color === 'info' ? t.colors.info : t.colors.gold;
+              return <Polyline key={`sma${oi}`} points={pts} fill="none" stroke={color} strokeWidth={1.6} opacity={0.9} />;
             })}
 
             {/* price lines */}

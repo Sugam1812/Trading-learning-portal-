@@ -46,7 +46,14 @@ function Figure({ figure }: { figure: ChartFigure }) {
   const pack = getPack(figure.packId);
   return (
     <View style={{ marginTop: 10 }}>
-      <CandleChart candles={pack.candles} visible={figure.visible} pipSize={pack.pipSize} lines={figure.lines} height={210} />
+      <CandleChart
+        candles={pack.candles}
+        visible={figure.visible}
+        pipSize={pack.pipSize}
+        lines={figure.lines}
+        smaOverlays={figure.sma}
+        height={210}
+      />
       {figure.caption ? <Dim style={{ marginTop: 6, fontStyle: 'italic' }}>{figure.caption}</Dim> : null}
     </View>
   );

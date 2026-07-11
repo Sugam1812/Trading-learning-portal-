@@ -140,6 +140,53 @@ export const CHALLENGES: ChartChallenge[] = [
   },
 ];
 
+CHALLENGES.push(
+  {
+    id: 'ch-sr-1',
+    title: 'Rank the Level',
+    mode: 'levels',
+    difficulty: 2,
+    packId: 'eu-sr-1',
+    visible: 38,
+    question:
+      'Price is approaching an area that has already produced several bounces. Your plan trades fresh, clearly-respected zones. How do you treat this level now?',
+    options: [
+      {
+        text: 'Respect it but demand a trigger — each prior test may have consumed the orders waiting there',
+        quality: 'best',
+        explain: 'Multiple tests cut both ways: proven relevance, possibly depleted interest. A trigger plus tight invalidation handles both.',
+      },
+      { text: 'Buy blindly at the level — it held every time before', quality: 'poor', explain: '"It always held" is exactly what every broken level looked like the moment before it broke.' },
+      { text: 'Ignore the level entirely', quality: 'poor', explain: 'A repeatedly respected area is real information; discarding it is as unbalanced as worshipping it.' },
+    ],
+    skill: 'levels',
+    reveal:
+      'Whatever this test did, the process point stands: levels earn respect, triggers earn entries, and stops handle the day the level finally gives way.',
+  },
+  {
+    id: 'ch-vol-1',
+    title: 'The Volatility Shift',
+    mode: 'risk',
+    difficulty: 3,
+    packId: 'bt-uj-1',
+    visible: 60,
+    question:
+      'Candles have visibly doubled in size versus the left of the chart. Your stop distance and position size were tuned in the quiet period. What must change before the next trade?',
+    options: [
+      {
+        text: 'Widen the stop beyond the new noise AND cut position size so money-at-risk stays constant',
+        quality: 'best',
+        explain: 'Volatility scaling: the stop breathes with the market, the size shrinks to keep the planned loss identical.',
+      },
+      { text: 'Keep everything — consistency means never adjusting', quality: 'poor', explain: 'Consistency applies to rules, and a good rule set includes volatility scaling. A fixed stop in doubled noise is a coin flip.' },
+      { text: 'Keep the stop but double the size to profit from bigger moves', quality: 'poor', explain: 'That doubles the risk precisely when random stop-outs became more likely — the exact inversion of risk control.' },
+    ],
+    skill: 'risk',
+    reveal:
+      'Volatility is a market regime in miniature. Stops scale out, size scales down, planned loss stays the same — this single habit prevents entire categories of blown accounts.',
+  },
+);
+
 export function getChallenge(id: string): ChartChallenge | undefined {
   return CHALLENGES.find((c) => c.id === id);
 }

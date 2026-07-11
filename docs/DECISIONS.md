@@ -20,7 +20,7 @@
 - **Pip-value model simplified** to USD-quoted pairs (≈$10/pip/lot); stated wherever used. Cross-currency conversion is a future calculator upgrade.
 - **No push notifications yet** — the notification plan (supportive, non-manipulative, quiet hours) is specced in the master prompt but not implemented; requires a dev build.
 - **No screenshots in journal entries** — text-first journal for v1 (image picker + storage is a straightforward follow-up).
-- **Curriculum covers 8 of the ~24 specced modules** (foundations → candles → structure → S/R → risk → execution → psychology → strategy/backtesting). The engine is fully data-driven; remaining modules (indicators, MTF, fundamentals, sessions, broker literacy, advanced concepts, capstone) are content work, not engineering work.
+- **Curriculum covers 15 modules / 54 lessons** (foundations → candles → structure → S/R → risk → execution → psychology → strategy/backtesting → indicators → multi-timeframe → fundamentals & news → sessions → broker literacy → advanced concepts → capstone trading plan). Remaining specced depth (checkpoint exams, dedicated chart-pattern module, an interactive capstone program with gated requirements) is content/feature work on the existing data-driven engine.
 - **AI tutor not included** — core curriculum works without AI per spec §12; the Socratic tutor needs a server-side proxy (never ship API keys in the client).
 - **E2E runs against the exported web build** (Playwright + Chromium) rather than Maestro/Detox on-device — that is what this environment can execute; flows verified are identical route/logic code paths.
 - **Spread/slippage simulation** in the replay lab is limited to the worst-case fill rule; a configurable spread model is on the roadmap.
@@ -28,7 +28,7 @@
 
 ## Roadmap
 
-1. Content: indicators, multi-timeframe workflow, fundamentals, sessions, broker literacy, advanced concepts modules; checkpoint exams; capstone trader-development program
+1. Content: checkpoint exams; a dedicated chart-pattern module; an interactive capstone program with gated completion requirements
 2. Journal screenshots + calendar view; weekly review ritual
 3. Notifications (opt-in, quiet hours); daily-goal scheduling from onboarding pace
 4. Spread/slippage/commission models in the lab; walk-forward missions; parameter-sensitivity explorer

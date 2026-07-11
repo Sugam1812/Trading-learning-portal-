@@ -38,6 +38,8 @@ export interface ChartFigure {
   /** How many candles are visible. Omit = all. */
   visible?: number;
   lines?: PriceLine[];
+  /** Simple-moving-average overlays drawn on closes. */
+  sma?: { period: number; color?: 'gold' | 'info' }[];
   caption?: string;
 }
 
