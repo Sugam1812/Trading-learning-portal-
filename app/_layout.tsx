@@ -24,6 +24,7 @@ function ThemedStack() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="module/[id]" options={{ title: 'Module' }} />
         <Stack.Screen name="lesson/[id]" options={{ title: 'Lesson', gestureEnabled: false }} />
+        <Stack.Screen name="exam/[id]" options={{ title: 'Checkpoint Exam', gestureEnabled: false }} />
         <Stack.Screen name="challenge/[id]" options={{ title: 'Chart Challenge' }} />
         <Stack.Screen name="calculators" options={{ title: 'Calculators' }} />
         <Stack.Screen name="strategy-builder" options={{ title: 'Strategy Builder' }} />

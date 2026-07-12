@@ -76,4 +76,9 @@ export const GLOSSARY: GlossaryEntry[] = [
   { id: 'g-sweep', term: 'Liquidity sweep', plain: 'Price briefly pushing past an obvious high or low, triggering the stops resting there, then reversing. Another name for a fakeout, seen through orders.' },
   { id: 'g-kyc', term: 'KYC check', plain: 'The standard identity verification regulated brokers must run when you open an account.' },
   { id: 'g-nbp', term: 'Negative balance protection', plain: 'A safeguard ensuring your account cannot go below zero, no matter how fast the market moves.' },
+  { id: 'g-double-top', term: 'Double top / bottom', plain: 'Two failed attempts at the same high (or low). Confirmed only when the level between the attempts — the neckline — breaks.' },
+  { id: 'g-hns', term: 'Head and shoulders', plain: 'A final higher high (head) between two lower peaks (shoulders) that fails — a classic trend-exhaustion story.' },
+  { id: 'g-neckline', term: 'Neckline', plain: 'The confirmation level of a reversal pattern. Until it breaks, the pattern is only a possibility.' },
+  { id: 'g-flag', term: 'Flag / pennant', plain: 'A tight, shallow pullback after a strong impulse, suggesting the move may continue.' },
+  { id: 'g-measured-move', term: 'Measured move', plain: 'A target estimated by projecting a pattern’s height from its breakout point. An estimate — real levels still outrank it.' },
 ];

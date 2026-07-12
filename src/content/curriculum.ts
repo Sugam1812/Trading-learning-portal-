@@ -14,8 +14,9 @@ import { M11, M11_LESSONS } from './m11';
 import { M12, M12_LESSONS } from './m12';
 import { M13, M13_LESSONS } from './m13';
 import { M14, M14_LESSONS } from './m14';
+import { M15, M15_LESSONS } from './m15';
 
-export const MODULES: Module[] = [M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14];
+export const MODULES: Module[] = [M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15];
 
 export const LESSONS: Lesson[] = [
   ...M0_LESSONS,
@@ -33,6 +34,7 @@ export const LESSONS: Lesson[] = [
   ...M12_LESSONS,
   ...M13_LESSONS,
   ...M14_LESSONS,
+  ...M15_LESSONS,
 ];
 
 const lessonMap = new Map(LESSONS.map((l) => [l.id, l]));

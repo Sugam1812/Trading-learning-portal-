@@ -20,6 +20,7 @@ export default function LearnScreen() {
   const lessons = useProgress((s) => s.lessons);
   const mastery = useProgress((s) => s.mastery);
   const mistakes = useProgress((s) => s.mistakes);
+  const exams = useProgress((s) => s.exams);
 
   const level = levelFromXp(xp);
   const next = nextLesson(lessons);
@@ -105,7 +106,10 @@ export default function LearnScreen() {
                 <Row>
                   <Text style={{ fontSize: 30, marginRight: 12 }}>{unlocked ? m.icon : '🔒'}</Text>
                   <View style={{ flex: 1 }}>
-                    <Body style={{ fontWeight: '800' }}>{m.title}</Body>
+                    <Body style={{ fontWeight: '800' }}>
+                      {m.title}
+                      {exams[m.id]?.passed ? ' 👑' : ''}
+                    </Body>
                     <Dim style={{ fontSize: 13 }}>{m.tagline}</Dim>
                     <Spacer h={2} />
                     {unlocked ? (

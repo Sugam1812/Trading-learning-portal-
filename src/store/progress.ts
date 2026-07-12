@@ -32,6 +32,14 @@ export interface ChallengeResult {
   at: number;
 }
 
+export interface ExamResult {
+  bestScore: number;
+  total: number;
+  passed: boolean;
+  attempts: number;
+  lastAt: number;
+}
+
 interface ProgressState {
   xp: number;
   streakCount: number;
@@ -43,8 +51,11 @@ interface ProgressState {
   reflections: { at: number; prompt: string; text: string }[];
   /** Day keys with any learning activity, for the weekly chart. */
   activeDays: Record<string, number>;
+  /** Checkpoint exam results per module. */
+  exams: Record<string, ExamResult>;
 
   addXp: (amount: number) => void;
+  recordExam: (moduleId: string, correct: number, total: number, passed: boolean) => void;
   recordAnswer: (skill: SkillId, correct: boolean) => void;
   addMistake: (m: Omit<MistakeItem, 'id' | 'createdAt' | 'review'>) => void;
   reviewMistake: (id: string, correct: boolean) => void;
@@ -67,6 +78,26 @@ export const useProgress = create<ProgressState>()(
       challengeResults: [],
       reflections: [],
       activeDays: {},
+      exams: {},
+
+      recordExam: (moduleId, correct, total, passed) => {
+        get().touchActivity();
+        set((s) => {
+          const prev = s.exams[moduleId];
+          return {
+            exams: {
+              ...s.exams,
+              [moduleId]: {
+                bestScore: Math.max(prev?.bestScore ?? 0, correct),
+                total,
+                passed: (prev?.passed ?? false) || passed,
+                attempts: (prev?.attempts ?? 0) + 1,
+                lastAt: Date.now(),
+              },
+            },
+          };
+        });
+      },
 
       addXp: (amount) => {
         get().touchActivity();
@@ -135,6 +166,7 @@ export const useProgress = create<ProgressState>()(
           challengeResults: [],
           reflections: [],
           activeDays: {},
+          exams: {},
         }),
     }),
     { name: 'pq-progress', storage: createJSONStorage(() => AsyncStorage) },

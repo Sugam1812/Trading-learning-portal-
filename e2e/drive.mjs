@@ -180,6 +180,17 @@ await step('legal page', async () => {
   await page.getByText('Trading foreign exchange carries substantial risk.').waitFor();
 });
 
+
+await step('exam: locked state before module completion', async () => {
+  await page.goto(BASE + '/exam/m1', { waitUntil: 'networkidle' });
+  await page.getByText('Checkpoint locked').waitFor();
+});
+
+await step('exam: unlocked entry point appears logic (module screen)', async () => {
+  await page.goto(BASE + '/module/m15', { waitUntil: 'networkidle' });
+  await page.getByText('Chart Patterns').first().waitFor();
+});
+
 await step('progress persists across full reload', async () => {
   await page.goto(BASE + '/', { waitUntil: 'networkidle' });
   await page.getByText('CONTINUE LEARNING').waitFor({ timeout: 15000 });

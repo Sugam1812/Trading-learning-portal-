@@ -10,7 +10,7 @@ PipQuest is an interactive forex trading academy for Android and iOS, built with
 
 | Area | Features |
 | --- | --- |
-| **Learn** | 15 modules across 9 themed worlds, 54 interactive lessons (foundations, candles, structure, S/R, risk, execution, psychology, backtesting, indicators with live SMA overlays, multi-timeframe analysis, fundamentals & news, sessions, broker literacy & scam defence, advanced concepts, capstone trading plan), 14 reusable exercise block types, prerequisite-gated course map, glossary (73 plain-language terms) |
+| **Learn** | 16 modules across 9 themed worlds, 58 interactive lessons (foundations, candles, structure, S/R, risk, execution, psychology, backtesting, indicators with live SMA overlays, multi-timeframe analysis, fundamentals & news, sessions, broker literacy & scam defence, advanced concepts, capstone trading plan), 14 reusable exercise block types, prerequisite-gated course map, glossary (78 plain-language terms), checkpoint exams with course-map crowns |
 | **Practice** | Chart-guessing challenges with hidden future candles, confidence ratings, process-vs-outcome scoring, deterministic daily challenge, Mistake Notebook with spaced repetition (1→3→7→14→30 days) |
 | **Lab** | Candle-by-candle replay backtester (look-ahead impossible by construction), forward-test simulator with play/pause/speed, no-code strategy builder with a rule-quality checker, position-size / reward-to-risk / expectancy / survival calculators |
 | **Journal** | Full trade journal (emotions, mistake tags, rule adherence), analytics (equity curve in R, compliance, top mistake, tilt warning) |
@@ -29,7 +29,7 @@ Useful scripts:
 
 ```bash
 npm run typecheck  # strict TypeScript
-npm test           # 70 unit + content-integrity tests (Jest)
+npm test           # 75 unit + content-integrity tests (Jest)
 npx expo export --platform web   # production web bundle (used for e2e smoke)
 ```
 
